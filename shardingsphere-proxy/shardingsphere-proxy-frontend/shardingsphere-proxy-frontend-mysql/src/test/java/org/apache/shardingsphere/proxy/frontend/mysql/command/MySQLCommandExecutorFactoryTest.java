@@ -26,64 +26,114 @@ import org.apache.shardingsphere.db.protocol.mysql.packet.command.query.binary.r
 import org.apache.shardingsphere.db.protocol.mysql.packet.command.query.text.fieldlist.MySQLComFieldListPacket;
 import org.apache.shardingsphere.db.protocol.mysql.packet.command.query.text.query.MySQLComQueryPacket;
 import org.apache.shardingsphere.db.protocol.packet.CommandPacket;
-import org.apache.shardingsphere.kernel.context.SchemaContext;
-import org.apache.shardingsphere.kernel.context.runtime.RuntimeContext;
-import org.apache.shardingsphere.kernel.context.schema.ShardingSphereSchema;
+import org.apache.shardingsphere.infra.metadata.auth.builtin.DefaultAuthentication;
+import org.apache.shardingsphere.infra.config.properties.ConfigurationProperties;
+import org.apache.shardingsphere.infra.context.metadata.impl.StandardMetaDataContexts;
+import org.apache.shardingsphere.infra.database.type.dialect.MySQLDatabaseType;
+import org.apache.shardingsphere.infra.executor.kernel.ExecutorEngine;
+import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
 import org.apache.shardingsphere.proxy.backend.communication.jdbc.connection.BackendConnection;
+import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 import org.apache.shardingsphere.proxy.frontend.mysql.command.admin.initdb.MySQLComInitDbExecutor;
 import org.apache.shardingsphere.proxy.frontend.mysql.command.admin.ping.MySQLComPingExecutor;
 import org.apache.shardingsphere.proxy.frontend.mysql.command.admin.quit.MySQLComQuitExecutor;
+import org.apache.shardingsphere.proxy.frontend.mysql.command.generic.MySQLUnsupportedCommandExecutor;
 import org.apache.shardingsphere.proxy.frontend.mysql.command.query.binary.close.MySQLComStmtCloseExecutor;
 import org.apache.shardingsphere.proxy.frontend.mysql.command.query.binary.execute.MySQLComStmtExecuteExecutor;
 import org.apache.shardingsphere.proxy.frontend.mysql.command.query.binary.prepare.MySQLComStmtPrepareExecutor;
 import org.apache.shardingsphere.proxy.frontend.mysql.command.query.binary.reset.MySQLComStmtResetExecutor;
 import org.apache.shardingsphere.proxy.frontend.mysql.command.query.text.fieldlist.MySQLComFieldListPacketExecutor;
 import org.apache.shardingsphere.proxy.frontend.mysql.command.query.text.query.MySQLComQueryPacketExecutor;
-import org.apache.shardingsphere.sql.parser.SQLParserEngine;
-import org.apache.shardingsphere.sql.parser.sql.statement.SQLStatement;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+import java.lang.reflect.Field;
+import java.sql.SQLException;
 import java.util.Collections;
+import java.util.Map;
+import java.util.Properties;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertThat;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.class)
 public final class MySQLCommandExecutorFactoryTest {
     
+    @Mock
+    private BackendConnection backendConnection;
+    
+    @Before
+    public void setUp() throws ReflectiveOperationException {
+        when(backendConnection.getSchemaName()).thenReturn("logic_db");
+        Field field = ProxyContext.getInstance().getClass().getDeclaredField("metaDataContexts");
+        field.setAccessible(true);
+        ShardingSphereMetaData metaData = mock(ShardingSphereMetaData.class, RETURNS_DEEP_STUBS);
+        when(metaData.getResource().getDatabaseType()).thenReturn(new MySQLDatabaseType());
+        Map<String, ShardingSphereMetaData> metaDataMap = Collections.singletonMap("logic_db", metaData);
+        field.set(ProxyContext.getInstance(), new StandardMetaDataContexts(metaDataMap, mock(ExecutorEngine.class), new DefaultAuthentication(), new ConfigurationProperties(new Properties())));
+    }
+    
     @Test
-    public void assertNewInstance() {
-        BackendConnection backendConnection = mock(BackendConnection.class);
-        SchemaContext schemaContext = mock(SchemaContext.class);
-        ShardingSphereSchema schema = mock(ShardingSphereSchema.class);
-        RuntimeContext runtimeContext = mock(RuntimeContext.class);
-        SQLParserEngine sqlParserEngine = mock(SQLParserEngine.class);
-        when(sqlParserEngine.parse(anyString(), anyBoolean())).thenReturn(mock(SQLStatement.class));
-        when(runtimeContext.getSqlParserEngine()).thenReturn(sqlParserEngine);
-        when(schema.getRules()).thenReturn(Collections.emptyList());
-        when(schemaContext.getSchema()).thenReturn(schema);
-        when(schemaContext.getRuntimeContext()).thenReturn(runtimeContext);
-        when(backendConnection.getSchema()).thenReturn(schemaContext);
-        assertThat(MySQLCommandExecutorFactory.newInstance(MySQLCommandPacketType.COM_QUIT,
-            mock(CommandPacket.class), backendConnection), instanceOf(MySQLComQuitExecutor.class));
-        assertThat(MySQLCommandExecutorFactory.newInstance(MySQLCommandPacketType.COM_INIT_DB,
-            mock(MySQLComInitDbPacket.class), backendConnection), instanceOf(MySQLComInitDbExecutor.class));
-        assertThat(MySQLCommandExecutorFactory.newInstance(MySQLCommandPacketType.COM_FIELD_LIST,
-            mock(MySQLComFieldListPacket.class), backendConnection), instanceOf(MySQLComFieldListPacketExecutor.class));
-        assertThat(MySQLCommandExecutorFactory.newInstance(MySQLCommandPacketType.COM_QUERY,
-            mock(MySQLComQueryPacket.class), backendConnection), instanceOf(MySQLComQueryPacketExecutor.class));
-        assertThat(MySQLCommandExecutorFactory.newInstance(MySQLCommandPacketType.COM_STMT_PREPARE,
-            mock(MySQLComStmtPreparePacket.class), backendConnection), instanceOf(MySQLComStmtPrepareExecutor.class));
-        assertThat(MySQLCommandExecutorFactory.newInstance(MySQLCommandPacketType.COM_STMT_EXECUTE,
-            mock(MySQLComStmtExecutePacket.class), backendConnection), instanceOf(MySQLComStmtExecuteExecutor.class));
+    public void assertNewInstanceWithComQuit() throws SQLException {
+        assertThat(MySQLCommandExecutorFactory.newInstance(MySQLCommandPacketType.COM_QUIT, mock(CommandPacket.class), backendConnection), instanceOf(MySQLComQuitExecutor.class));
+    }
+    
+    @Test
+    public void assertNewInstanceWithComInitDb() throws SQLException {
+        assertThat(MySQLCommandExecutorFactory.newInstance(MySQLCommandPacketType.COM_INIT_DB, mock(MySQLComInitDbPacket.class), backendConnection), instanceOf(MySQLComInitDbExecutor.class));
+    }
+    
+    @Test
+    public void assertNewInstanceWithComFieldList() throws SQLException {
+        MySQLComFieldListPacket packet = mock(MySQLComFieldListPacket.class);
+        when(packet.getTable()).thenReturn("test");
+        assertThat(MySQLCommandExecutorFactory.newInstance(MySQLCommandPacketType.COM_FIELD_LIST, packet, backendConnection), instanceOf(MySQLComFieldListPacketExecutor.class));
+    }
+    
+    @Test
+    public void assertNewInstanceWithComQuery() throws SQLException {
+        assertThat(MySQLCommandExecutorFactory.newInstance(MySQLCommandPacketType.COM_QUERY, mock(MySQLComQueryPacket.class), backendConnection), instanceOf(MySQLComQueryPacketExecutor.class));
+    }
+    
+    @Test
+    public void assertNewInstanceWithComPing() throws SQLException {
+        assertThat(MySQLCommandExecutorFactory.newInstance(MySQLCommandPacketType.COM_PING, mock(CommandPacket.class), backendConnection), instanceOf(MySQLComPingExecutor.class));
+    }
+    
+    @Test
+    public void assertNewInstanceWithComStmtPrepare() throws SQLException {
+        assertThat(MySQLCommandExecutorFactory.newInstance(
+                MySQLCommandPacketType.COM_STMT_PREPARE, mock(MySQLComStmtPreparePacket.class), backendConnection), instanceOf(MySQLComStmtPrepareExecutor.class));
+    }
+    
+    @Test
+    public void assertNewInstanceWithComStmtExecute() throws SQLException {
+        MySQLComStmtExecutePacket packet = mock(MySQLComStmtExecutePacket.class);
+        when(packet.getSql()).thenReturn("SELECT 1");
+        assertThat(MySQLCommandExecutorFactory.newInstance(MySQLCommandPacketType.COM_STMT_EXECUTE, packet, backendConnection), instanceOf(MySQLComStmtExecuteExecutor.class));
+    }
+    
+    @Test
+    public void assertNewInstanceWithComStmtReset() throws SQLException {
         assertThat(MySQLCommandExecutorFactory.newInstance(MySQLCommandPacketType.COM_STMT_RESET,
-            mock(MySQLComStmtResetPacket.class), backendConnection), instanceOf(MySQLComStmtResetExecutor.class));
+                mock(MySQLComStmtResetPacket.class), backendConnection), instanceOf(MySQLComStmtResetExecutor.class));
+    }
+    
+    @Test
+    public void assertNewInstanceWithComStmtClose() throws SQLException {
         assertThat(MySQLCommandExecutorFactory.newInstance(MySQLCommandPacketType.COM_STMT_CLOSE,
-            mock(MySQLComStmtClosePacket.class), backendConnection), instanceOf(MySQLComStmtCloseExecutor.class));
-        assertThat(MySQLCommandExecutorFactory.newInstance(MySQLCommandPacketType.COM_PING,
-            mock(CommandPacket.class), backendConnection), instanceOf(MySQLComPingExecutor.class));
+                mock(MySQLComStmtClosePacket.class), backendConnection), instanceOf(MySQLComStmtCloseExecutor.class));
+    }
+    
+    @Test
+    public void assertNewInstanceWithUnsupportedCommand() throws SQLException {
+        assertThat(MySQLCommandExecutorFactory.newInstance(MySQLCommandPacketType.COM_REFRESH,
+                mock(CommandPacket.class), backendConnection), instanceOf(MySQLUnsupportedCommandExecutor.class));
     }
 }

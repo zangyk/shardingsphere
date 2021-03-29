@@ -17,7 +17,7 @@
 
 package org.apache.shardingsphere.sharding.yaml.swapper.rule;
 
-import org.apache.shardingsphere.infra.yaml.swapper.YamlSwapper;
+import org.apache.shardingsphere.infra.yaml.swapper.YamlConfigurationSwapper;
 import org.apache.shardingsphere.sharding.api.config.rule.ShardingAutoTableRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.keygen.KeyGenerateStrategyConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.StandardShardingStrategyConfiguration;
@@ -61,7 +61,7 @@ public final class ShardingAutoTableRuleConfigurationYamlSwapperTest {
         when(keyGenerateStrategyYamlSwapper.swapToYamlConfiguration(ArgumentMatchers.any())).thenReturn(mock(YamlKeyGenerateStrategyConfiguration.class));
     }
     
-    private void setSwapper(final String swapperFieldName, final YamlSwapper swapperFieldValue) throws ReflectiveOperationException {
+    private void setSwapper(final String swapperFieldName, final YamlConfigurationSwapper swapperFieldValue) throws ReflectiveOperationException {
         Field field = ShardingAutoTableRuleConfigurationYamlSwapper.class.getDeclaredField(swapperFieldName);
         field.setAccessible(true);
         field.set(tableYamlSwapper, swapperFieldValue);
@@ -78,10 +78,10 @@ public final class ShardingAutoTableRuleConfigurationYamlSwapperTest {
     
     @Test
     public void assertSwapToYamlWithMaxProperties() {
-        ShardingAutoTableRuleConfiguration shardingTableRuleConfiguration = new ShardingAutoTableRuleConfiguration("tbl", "ds0,ds1");
-        shardingTableRuleConfiguration.setShardingStrategy(mock(StandardShardingStrategyConfiguration.class));
-        shardingTableRuleConfiguration.setKeyGenerateStrategy(mock(KeyGenerateStrategyConfiguration.class));
-        YamlShardingAutoTableRuleConfiguration actual = tableYamlSwapper.swapToYamlConfiguration(shardingTableRuleConfiguration);
+        ShardingAutoTableRuleConfiguration shardingTableRuleConfig = new ShardingAutoTableRuleConfiguration("tbl", "ds0,ds1");
+        shardingTableRuleConfig.setShardingStrategy(mock(StandardShardingStrategyConfiguration.class));
+        shardingTableRuleConfig.setKeyGenerateStrategy(mock(KeyGenerateStrategyConfiguration.class));
+        YamlShardingAutoTableRuleConfiguration actual = tableYamlSwapper.swapToYamlConfiguration(shardingTableRuleConfig);
         assertThat(actual.getLogicTable(), is("tbl"));
         assertThat(actual.getActualDataSources(), is("ds0,ds1"));
         assertNotNull(actual.getShardingStrategy());

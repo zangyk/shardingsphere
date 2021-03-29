@@ -231,6 +231,10 @@ END
     : E N D
     ;
 
+EXCEPT
+    : E X C E P T
+    ;
+
 EXCEPTIONS
     : E X C E P T I O N S
     ;
@@ -289,6 +293,10 @@ NOMAXVALUE
 
 NOMINVALUE
     : N O M I N V A L U E
+    ;
+
+NOSORT
+    : N O S O R T
     ;
 
 MINING
@@ -357,6 +365,10 @@ REPLACE
 
 RESOURCE
     : R E S O U R C E
+    ;
+
+REVERSE
+    : R E V E R S E
     ;
 
 ROWID
@@ -769,4 +781,572 @@ JSON
 
 DEC
     : D E C
+    ;
+
+SHARING
+    : S H A R I N G
+    ;
+
+PRIVATE
+    : P R I V A T E
+    ;
+
+SHARDED
+    : S H A R D E D
+    ;
+
+DUPLICATED
+    : D U P L I C A T E D
+    ;
+
+METADATA
+    : M E T A D A T A
+    ;
+
+DATA
+    : D A T A
+    ;
+
+EXTENDED
+    : E X T E N D E D
+    ;
+
+NONE
+    : N O N E
+    ;
+
+MEMOPTIMIZE
+    : M E M O P T I M I Z E
+    ;
+
+PARENT
+    : P A R E N T
+    ;
+
+IDENTIFIER
+    : I D E N T I F I E R
+    ;
+
+WORK
+    : W O R K
+    ;
+
+CONTAINER_MAP
+    : C O N T A I N E R UL_ M A P
+    ;
+
+CONTAINERS_DEFAULT
+    : C O N T A I N E R S UL_ D E F A U L T
+    ;
+
+WAIT
+    : W A I T
+    ;
+
+NOWAIT
+    : N O W A I T
+    ;
+
+BATCH
+    : B A T C H
+    ;
+
+BLOCK
+    : B L O C K
+    ;
+
+REBUILD
+    : R E B U I L D
+    ;
+
+INVALIDATION
+    : I N V A L I D A T I O N
+    ;
+
+COMPILE
+    : C O M P I L E
+    ;
+
+USABLE
+    : U S A B L E
+    ;
+
+UNUSABLE
+    : U N U S A B L E
+    ;
+
+ONLINE
+    : O N L I N E
+    ;
+
+MONITORING
+    : M O N I T O R I N G
+    ;
+
+NOMONITORING
+    : N O M O N I T O R I N G
+    ;
+
+USAGE
+    : U S A G E
+    ;
+
+COALESCE
+    : C O A L E S C E
+    ;
+
+CLEANUP
+    : C L E A N U P
+    ;
+
+PARALLEL
+    : P A R A L L E L
+    ;
+
+LOG
+    : L O G
+    ;
+
+REUSE
+    : R E U S E
+    ;
+
+STORAGE
+    : S T O R A G E
+    ;
+
+MATCHED
+    : M A T C H E D
+    ;
+
+ERRORS
+    : E R R O R S
+    ;
+
+REJECT
+    : R E J E C T
+    ;
+
+RETENTION
+    : R E T E N T I O N
+    ;
+
+CHUNK
+    : C H U N K
+    ;
+
+PCTVERSION
+    : P C T V E R S I O N
+    ;
+
+FREEPOOLS
+    : F R E E P O O L S
+    ;
+
+AUTO
+    : A U T O
+    ;
+
+DEDUPLICATE
+    : D E D U P L I C A T E
+    ;
+
+KEEP_DUPLICATES
+    : K E E P UL_ D U P L I C A T E S
+    ;
+
+COMPRESS
+    : C O M P R E S S
+    ;
+
+HIGH
+    : H I G H
+    ;
+
+MEDIUM
+    : M E D I U M
+    ;
+
+LOW
+    : L O W
+    ;
+
+NOCOMPRESS
+    : N O C O M P R E S S
+    ;
+
+READS
+    : R E A D S
+    ;
+
+CREATION
+    : C R E A T I O N
+    ;
+
+PCTFREE
+    : P C T F R E E
+    ;
+
+PCTUSED
+    : P C T U S E D
+    ;
+
+INITRANS
+    : I N I T R A N S
+    ;
+
+LOGGING
+    : L O G G I N G
+    ;
+
+NOLOGGING
+    : N O L O G G I N G
+    ;
+
+FILESYSTEM_LIKE_LOGGING
+    : F I L E S Y S T E M UL_ L I K E UL_ L O G G I N G
+    ;
+
+INITIAL
+    : I N I T I A L
+    ;
+
+MINEXTENTS
+    : M I N E X T E N T S
+    ;
+
+MAXEXTENTS
+    : M A X E X T E N T S
+    ;
+
+BASIC
+    : B A S I C
+    ;
+
+ADVANCED
+    : A D V A N C E D
+    ;
+
+PCTINCREASE
+    : P C T I N C R E A S E
+    ;
+
+FREELISTS
+    : F R E E L I S T S
+    ;
+
+DML
+    : D M L
+    ;
+
+CAPACITY
+    : C A P A C I T Y
+    ;
+
+FREELIST
+    : F R E E L I S T
+    ;
+
+GROUPS
+    : G R O U P S
+    ;
+
+OPTIMAL
+    : O P T I M A L
+    ;
+
+BUFFER_POOL
+    : B U F F E R UL_ P O O L
+    ;
+
+RECYCLE
+    : R E C Y C L E
+    ;
+
+FLASH_CACHE
+    : F L A S H UL_ C A C H E
+    ;
+
+CELL_FLASH_CACHE
+    : C E L L UL_ F L A S H UL_ C A C H E
+    ;
+
+MAXSIZE
+    : M A X S I Z E
+    ;
+
+STORE
+    : S T O R E
+    ;
+
+LEVEL
+    : L E V E L
+    ;
+
+LOCKING
+    : L O C K I N G
+    ;
+
+INMEMORY
+    : I N M E M O R Y
+    ;
+
+MEMCOMPRESS
+    : M E M C O M P R E S S
+    ;
+
+PRIORITY
+    : P R I O R I T Y
+    ;
+
+CRITICAL
+    : C R I T I C A L
+    ;
+
+DISTRIBUTE
+    : D I S T R I B U T E
+    ;
+
+RANGE
+    : R A N G E
+    ;
+
+PARTITION
+    : P A R T I T I O N
+    ;
+
+SUBPARTITION
+    : S U B P A R T I T I O N
+    ;
+
+SERVICE
+    : S E R V I C E
+    ;
+
+DUPLICATE
+    : D U P L I C A T E
+    ;
+
+ILM
+    : I L M
+    ;
+
+DELETE_ALL
+    : D E L E T E UL_ A L L
+    ;
+
+ENABLE_ALL
+    : E N A B L E UL_ A L L
+    ;
+
+DISABLE_ALL
+    : D I S A B L E UL_ A L L
+    ;
+
+AFTER
+    : A F T E R
+    ;
+
+MODIFICATION
+    : M O D I F I C A T I O N
+    ;
+
+DAYS
+    : D A Y S
+    ;
+
+MONTHS
+    : M O N T H S
+    ;
+
+YEARS
+    : Y E A R S
+    ;
+
+TIER
+    : T I E R
+    ;
+
+ORGANIZATION
+    : O R G A N I Z A T I O N
+    ;
+
+HEAP
+    : H E A P
+    ;
+
+PCTTHRESHOLD
+    : P C T T H R E S H O L D
+    ;
+
+PARAMETERS
+    : P A R A M E  T E R S
+    ;
+
+LOCATION
+    : L O C A T I O N
+    ;
+
+MAPPING
+    : M A P P I N G
+    ;
+
+NOMAPPING
+    : N O M A P P I N G
+    ;
+
+INCLUDING
+    : I N C L U D I N G
+    ;
+
+OVERFLOW
+    : O V E R F L O W
+    ;
+
+ATTRIBUTES
+    : A T T R I B U T E S
+    ;
+
+RESULT_CACHE
+    : R E S U L T UL_ C A C H E
+    ;
+
+ROWDEPENDENCIES
+    : R O W D E P E N D E N C I E S
+    ;
+
+NOROWDEPENDENCIES
+    : N O R O W D E P E N D E N C I E S
+    ; 
+
+ARCHIVAL
+    : A R C H I V A L
+    ;
+
+EXCHANGE
+    : E X C H A N G E
+    ;
+
+INDEXING
+    : I N D E X I N G
+    ;
+
+OFF
+    : O F F
+    ;
+
+LESS
+    : L E S S
+    ;
+
+INTERNAL
+    : I N T E R N A L
+    ;
+
+VARRAY
+    : V A R R A Y
+    ;
+
+NESTED
+    : N E S T E D
+    ;
+
+COLUMN_VALUE
+    : C O L U M N UL_ V A L U E
+    ;
+
+RETURN
+    : R E T U R N
+    ;
+
+LOCATOR
+    : L O C A  T O R
+    ;
+
+MODE
+    : M O D E
+    ;
+
+LOB
+    : L O B
+    ;
+
+SECUREFILE
+    : S E C U R E F I L E
+    ;
+
+BASICFILE
+    : B A S I C F I L E
+    ;
+
+THAN
+    : T H A N
+    ;
+
+LIST
+    : L I S T
+    ;
+
+AUTOMATIC
+    : A U T O M A T I C
+    ;
+
+HASH
+    : H A S H
+    ;
+
+PARTITIONS
+    : P A R T I T I O N S
+    ;
+
+SUBPARTITIONS
+    : S U B P A R T I T I O N S
+    ;
+
+TEMPLATE
+    : T E M P L A T E
+    ;
+
+PARTITIONSET
+    : P A R T I T I O N S E T
+    ;
+
+REFERENCE
+    : R E F E R E N C E
+    ;
+
+CONSISTENT
+    : C O N S I S T E N T
+    ;
+
+CLUSTERING
+    : C L U S T E R I N G
+    ;
+
+LINEAR
+    : L I N E A R
+    ;
+
+INTERLEAVED
+    : I N T E R L E A V E D
+    ;
+
+YES
+    : Y E S
+    ;
+
+LOAD
+    : L O A D
+    ;
+
+MOVEMENT
+    : M O V E M E N T
+    ;
+
+ZONEMAP
+    : Z O N E M A P
+    ;
+
+WITHOUT
+    : W I T H O U T
     ;

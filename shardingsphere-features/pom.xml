@@ -26,13 +26,13 @@
         <version>5.0.0-RC1-SNAPSHOT</version>
     </parent>
     <artifactId>shardingsphere-features</artifactId>
-    <name>${project.artifactId}</name>
     <packaging>pom</packaging>
+    <name>${project.artifactId}</name>
     
     <modules>
         <module>shardingsphere-sharding</module>
-        <module>shardingsphere-replica</module>
-        <module>shardingsphere-master-slave</module>
+        <module>shardingsphere-read-write-splitting</module>
+        <module>shardingsphere-db-discovery</module>
         <module>shardingsphere-encrypt</module>
         <module>shardingsphere-shadow</module>
     </modules>

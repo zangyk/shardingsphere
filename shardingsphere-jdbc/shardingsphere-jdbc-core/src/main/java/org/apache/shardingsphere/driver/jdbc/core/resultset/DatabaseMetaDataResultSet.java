@@ -19,9 +19,11 @@ package org.apache.shardingsphere.driver.jdbc.core.resultset;
 
 import lombok.EqualsAndHashCode;
 import org.apache.shardingsphere.driver.jdbc.unsupported.AbstractUnsupportedDatabaseMetaDataResultSet;
-import org.apache.shardingsphere.infra.rule.DataNodeRoutedRule;
+import org.apache.shardingsphere.infra.rule.type.DataNodeContainedRule;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
 
+import java.math.BigDecimal;
+import java.net.URL;
 import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -34,9 +36,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 /**
  * Database meta data result set.
@@ -84,8 +86,8 @@ public final class DatabaseMetaDataResultSet extends AbstractUnsupportedDatabase
     }
     
     private Iterator<DatabaseMetaDataObject> initIterator(final ResultSet resultSet) throws SQLException {
-        LinkedList<DatabaseMetaDataObject> result = new LinkedList<>();
-        Set<DatabaseMetaDataObject> removeDuplicationSet = new HashSet<>();
+        Collection<DatabaseMetaDataObject> result = new LinkedList<>();
+        Collection<DatabaseMetaDataObject> removeDuplicationSet = new HashSet<>();
         int tableNameColumnIndex = columnLabelIndexMap.getOrDefault(TABLE_NAME, -1);
         int indexNameColumnIndex = columnLabelIndexMap.getOrDefault(INDEX_NAME, -1);
         while (resultSet.next()) {
@@ -100,16 +102,16 @@ public final class DatabaseMetaDataResultSet extends AbstractUnsupportedDatabase
     
     private DatabaseMetaDataObject generateDatabaseMetaDataObject(final int tableNameColumnIndex, final int indexNameColumnIndex, final ResultSet resultSet) throws SQLException {
         DatabaseMetaDataObject result = new DatabaseMetaDataObject(resultSetMetaData.getColumnCount());
-        Optional<DataNodeRoutedRule> dataNodeRoutedRule = findDataNodeRoutedRule();
+        Optional<DataNodeContainedRule> dataNodeContainedRule = findDataNodeContainedRule();
         for (int i = 1; i <= columnLabelIndexMap.size(); i++) {
             if (tableNameColumnIndex == i) {
                 String tableName = resultSet.getString(i);
-                Optional<String> logicTableName = dataNodeRoutedRule.isPresent() ? dataNodeRoutedRule.get().findLogicTableByActualTable(tableName) : Optional.empty();
+                Optional<String> logicTableName = dataNodeContainedRule.isPresent() ? dataNodeContainedRule.get().findLogicTableByActualTable(tableName) : Optional.empty();
                 result.addObject(logicTableName.orElse(tableName));
             } else if (indexNameColumnIndex == i) {
                 String tableName = resultSet.getString(tableNameColumnIndex);
                 String indexName = resultSet.getString(i);
-                result.addObject(null != indexName && indexName.endsWith(tableName) ? indexName.substring(0, indexName.indexOf(tableName) - 1) : indexName);
+                result.addObject(null != indexName && indexName.endsWith(tableName) ? indexName.substring(0, indexName.length() - tableName.length() - 1) : indexName);
             } else {
                 result.addObject(resultSet.getObject(i));
             }
@@ -117,8 +119,8 @@ public final class DatabaseMetaDataResultSet extends AbstractUnsupportedDatabase
         return result;
     }
     
-    private Optional<DataNodeRoutedRule> findDataNodeRoutedRule() {
-        return rules.stream().filter(each -> each instanceof DataNodeRoutedRule).findFirst().map(rule -> (DataNodeRoutedRule) rule);
+    private Optional<DataNodeContainedRule> findDataNodeContainedRule() {
+        return rules.stream().filter(each -> each instanceof DataNodeContainedRule).findFirst().map(rule -> (DataNodeContainedRule) rule);
     }
     
     @Override
@@ -141,6 +143,32 @@ public final class DatabaseMetaDataResultSet extends AbstractUnsupportedDatabase
     public boolean wasNull() throws SQLException {
         checkClosed();
         return false;
+    }
+    
+    @Override
+    public BigDecimal getBigDecimal(final int columnIndex, final int scale) throws SQLException {
+        return getBigDecimal(columnIndex, true, scale);
+    }
+    
+    @Override
+    public BigDecimal getBigDecimal(final String columnLabel, final int scale) throws SQLException {
+        return getBigDecimal(findColumn(columnLabel), scale);
+    }
+    
+    @Override
+    public BigDecimal getBigDecimal(final int columnIndex) throws SQLException {
+        return getBigDecimal(columnIndex, false, 0);
+    }
+    
+    private BigDecimal getBigDecimal(final int columnIndex, final boolean needScale, final int scale) throws SQLException {
+        checkClosed();
+        checkColumnIndex(columnIndex);
+        return (BigDecimal) ResultSetUtil.convertBigDecimalValue(currentDatabaseMetaDataObject.getObject(columnIndex), needScale, scale);
+    }
+    
+    @Override
+    public BigDecimal getBigDecimal(final String columnLabel) throws SQLException {
+        return getBigDecimal(findColumn(columnLabel));
     }
     
     @Override
@@ -298,6 +326,18 @@ public final class DatabaseMetaDataResultSet extends AbstractUnsupportedDatabase
     }
     
     @Override
+    public URL getURL(final int columnIndex) throws SQLException {
+        checkClosed();
+        checkColumnIndex(columnIndex);
+        return (URL) ResultSetUtil.convertValue(currentDatabaseMetaDataObject.getObject(columnIndex), URL.class);
+    }
+    
+    @Override
+    public URL getURL(final String columnLabel) throws SQLException {
+        return getURL(findColumn(columnLabel));
+    }
+    
+    @Override
     public ResultSetMetaData getMetaData() throws SQLException {
         checkClosed();
         return resultSetMetaData;
@@ -376,7 +416,7 @@ public final class DatabaseMetaDataResultSet extends AbstractUnsupportedDatabase
     @EqualsAndHashCode
     private static final class DatabaseMetaDataObject {
         
-        private final ArrayList<Object> objects;
+        private final List<Object> objects;
         
         private DatabaseMetaDataObject(final int columnCount) {
             objects = new ArrayList<>(columnCount);

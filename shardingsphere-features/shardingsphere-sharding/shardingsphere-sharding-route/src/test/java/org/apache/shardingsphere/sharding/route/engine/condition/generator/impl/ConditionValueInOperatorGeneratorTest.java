@@ -17,17 +17,17 @@
 
 package org.apache.shardingsphere.sharding.route.engine.condition.generator.impl;
 
-import org.apache.shardingsphere.sharding.strategy.value.ListRouteValue;
-import org.apache.shardingsphere.sharding.strategy.value.RouteValue;
+import org.apache.shardingsphere.infra.datetime.DatetimeService;
+import org.apache.shardingsphere.infra.spi.ShardingSphereServiceLoader;
 import org.apache.shardingsphere.sharding.route.engine.condition.Column;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.expr.complex.CommonExpressionSegment;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.predicate.value.PredicateBracketValue;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.predicate.value.PredicateInRightValue;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.predicate.value.PredicateLeftBracketValue;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.predicate.value.PredicateRightBracketValue;
+import org.apache.shardingsphere.sharding.route.engine.condition.value.ListShardingConditionValue;
+import org.apache.shardingsphere.sharding.route.engine.condition.value.ShardingConditionValue;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.InExpression;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.ListExpression;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.complex.CommonExpressionSegment;
+import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.Optional;
@@ -42,12 +42,18 @@ public final class ConditionValueInOperatorGeneratorTest {
     
     private final Column column = new Column("id", "tbl");
     
+    @Before
+    public void setup() {
+        ShardingSphereServiceLoader.register(DatetimeService.class);
+    }
+    
     @Test
     public void assertNowExpression() {
-        PredicateBracketValue predicateBracketValue = new PredicateBracketValue(new PredicateLeftBracketValue(0, 1), new PredicateRightBracketValue(0, 1));
-        PredicateInRightValue inRightValue = new PredicateInRightValue(predicateBracketValue, Collections.singletonList(new CommonExpressionSegment(0, 0, "now()")));
-        Optional<RouteValue> routeValue = generator.generate(inRightValue, column, new LinkedList<>());
-        assertTrue(routeValue.isPresent());
-        assertThat(((ListRouteValue) routeValue.get()).getValues().iterator().next(), instanceOf(Date.class));
+        ListExpression listExpression = new ListExpression(0, 0);
+        listExpression.getItems().add(new CommonExpressionSegment(0, 0, "now()"));
+        InExpression inExpression = new InExpression(0, 0, null, listExpression, false);
+        Optional<ShardingConditionValue> shardingConditionValue = generator.generate(inExpression, column, new LinkedList<>());
+        assertTrue(shardingConditionValue.isPresent());
+        assertThat(((ListShardingConditionValue) shardingConditionValue.get()).getValues().iterator().next(), instanceOf(Date.class));
     }
 }

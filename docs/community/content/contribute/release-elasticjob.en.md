@@ -1,6 +1,6 @@
 +++
 title = "ElasticJob Release Guide"
-weight = 8
+weight = 9
 chapter = true
 +++
 
@@ -10,7 +10,7 @@ Please refer to [Release Guide](/en/contribute/release/).
 
 ## Apache Maven Central Repository Release
 
-### Set settings.xml
+**1. Set settings.xml**
 
 Add the following template to `~/.m2/settings.xml`, all the passwords need to be filled in after encryption. 
 For encryption settings, please see [here](http://maven.apache.org/guides/mini/guide-encryption.html).
@@ -32,7 +32,7 @@ For encryption settings, please see [here](http://maven.apache.org/guides/mini/g
 </settings>
 ```
 
-### Update Release Notes
+**2. Update Release Notes And Example Version**
 
 Update the following file in master branch, and submit a PR to master branch:
 
@@ -40,7 +40,9 @@ Update the following file in master branch, and submit a PR to master branch:
 https://github.com/apache/shardingsphere-elasticjob/blob/master/RELEASE-NOTES.md
 ```
 
-### Create Release Branch
+Update the POM of the module `examples`, changing the version from ${CURRENT.VERSION} to ${RELEASE.VERSION}.
+
+**3. Create Release Branch**
 
 Suppose ElasticJob source codes downloaded from github is under `~/elasticjob/` directory and the version to be released is `${RELEASE.VERSION}`. 
 Create `${RELEASE.VERSION}-release` branch, where all the following operations are performed.
@@ -54,7 +56,7 @@ git checkout -b ${RELEASE.VERSION}-release
 git push origin ${RELEASE.VERSION}-release
 ```
 
-### Pre-Release Check
+**4. Pre-Release Check**
 
 ```shell
 mvn release:prepare -Prelease -Darguments="-DskipTests" -DautoVersionSubmodules=true -DdryRun=true -Dusername=${Github username}
@@ -66,15 +68,13 @@ mvn release:prepare -Prelease -Darguments="-DskipTests" -DautoVersionSubmodules=
 
 -DdryRun=true: rehearsal, which means not to generate or submit new version number and new tag.
 
-### Prepare for the Release
+**5. Prepare for the Release**
 
 First, clean local pre-release check information.
 
 ```shell
 mvn release:clean
 ```
-
-Then, prepare to execute the release. Before releasing, update the POM of the module `examples`, changing the version from ${CURRENT.VERSION} to ${RELEASE.VERSION}.
 
 ```shell
 mvn release:prepare -Prelease -Darguments="-DskipTests" -DautoVersionSubmodules=true -DpushChanges=false -Dusername=${Github username}
@@ -87,11 +87,11 @@ It is basically the same as the previous rehearsal command, but deleting -DdryRu
 After making sure there is no mistake in local files, submit them to GitHub.
 
 ```shell
-git push
+git push origin ${RELEASE.VERSION}-release
 git push origin --tags
 ```
 
-### Deploy the Release
+**6. Deploy the Release**
 
 ```shell
 mvn release:perform -Prelease -Darguments="-DskipTests" -DautoVersionSubmodules=true -Dusername=${Github username}
@@ -104,7 +104,7 @@ If there is any problem in gpg signature, `Close` will fail, but you can see the
 
 ## Apache SVN Repository Release
 
-### Checkout ShardingSphere Release Directory
+**1. Checkout ShardingSphere Release Directory**
 
 If there is no local work directory, create one at first.
 
@@ -120,7 +120,7 @@ svn --username=${APACHE LDAP username} co https://dist.apache.org/repos/dist/dev
 cd ~/ss_svn/dev/shardingsphere
 ```
 
-### Add gpg Public Key
+**2. Add gpg Public Key**
 
 Only the account in its first deployment needs to add that. 
 It is alright for `KEYS` to only include the public key of the deployed account.
@@ -129,7 +129,7 @@ It is alright for `KEYS` to only include the public key of the deployed account.
 gpg -a --export ${GPG username} >> KEYS
 ```
 
-### Add the Release Content to SVN Directory
+**3. Add the Release Content to SVN Directory**
 
 Create folder by version number.
 
@@ -145,22 +145,22 @@ cp -f ~/elasticjob/elasticjob-distribution/elasticjob-src-distribution/target/*.
 cp -f ~/elasticjob/elasticjob-distribution/elasticjob-src-distribution/target/*.zip.asc ~/ss_svn/dev/shardingsphere/elasticjob-${RELEASE.VERSION}
 cp -f ~/elasticjob/elasticjob-distribution/elasticjob-lite-distribution/target/*.tar.gz ~/ss_svn/dev/shardingsphere/elasticjob-${RELEASE.VERSION}
 cp -f ~/elasticjob/elasticjob-distribution/elasticjob-lite-distribution/target/*.tar.gz.asc ~/ss_svn/dev/shardingsphere/elasticjob-${RELEASE.VERSION}
-cp -f ~/elasticjob/elasticjob-distribution/elasticjob-cloud-distribution/target/*.tar.gz ~/ss_svn/dev/shardingsphere/elasticjob-${RELEASE.VERSION}
-cp -f ~/elasticjob/elasticjob-distribution/elasticjob-cloud-distribution/target/*.tar.gz.asc ~/ss_svn/dev/shardingsphere/elasticjob-${RELEASE.VERSION}
+cp -f ~/elasticjob/elasticjob-distribution/elasticjob-cloud-executor-distribution/target/*.tar.gz ~/ss_svn/dev/shardingsphere/elasticjob-${RELEASE.VERSION}
+cp -f ~/elasticjob/elasticjob-distribution/elasticjob-cloud-executor-distribution/target/*.tar.gz.asc ~/ss_svn/dev/shardingsphere/elasticjob-${RELEASE.VERSION}
 cp -f ~/elasticjob/elasticjob-distribution/elasticjob-cloud-scheduler-distribution/target/*.tar.gz ~/ss_svn/dev/shardingsphere/elasticjob-${RELEASE.VERSION}
 cp -f ~/elasticjob/elasticjob-distribution/elasticjob-cloud-scheduler-distribution/target/*.tar.gz.asc ~/ss_svn/dev/shardingsphere/elasticjob-${RELEASE.VERSION}
 ```
 
-### Generate sign files
+**4. Generate sign files**
 
 ```shell
-shasum -a 512 apache-shardingsphere-elasticjob-${RELEASE.VERSION}-src.zip >> apache-shardingsphere-elasticjob-${RELEASE.VERSION}-src.zip.sha512
-shasum -b -a 512 apache-shardingsphere-elasticjob-${RELEASE.VERSION}-lite-bin.tar.gz >> apache-shardingsphere-elasticjob-${RELEASE.VERSION}-lite-bin.tar.gz.sha512
-shasum -b -a 512 apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-bin.tar.gz >> apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-bin.tar.gz.sha512
-shasum -b -a 512 apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-scheduler-bin.tar.gz >> apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-scheduler-bin.tar.gz.sha512
+shasum -a 512 apache-shardingsphere-elasticjob-${RELEASE.VERSION}-src.zip > apache-shardingsphere-elasticjob-${RELEASE.VERSION}-src.zip.sha512
+shasum -b -a 512 apache-shardingsphere-elasticjob-${RELEASE.VERSION}-lite-bin.tar.gz > apache-shardingsphere-elasticjob-${RELEASE.VERSION}-lite-bin.tar.gz.sha512
+shasum -b -a 512 apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-executor-bin.tar.gz > apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-executor-bin.tar.gz.sha512
+shasum -b -a 512 apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-scheduler-bin.tar.gz > apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-scheduler-bin.tar.gz.sha512
 ```
 
-### Commit to Apache SVN
+**5. Commit to Apache SVN**
 
 ```shell
 svn add *
@@ -169,19 +169,18 @@ svn --username=${APACHE LDAP username} commit -m "release elasticjob-${RELEASE.V
 
 ## Check Release
 
-### Check sha512 hash
+**Check sha512 hash**
 
 ```shell
 shasum -c apache-shardingsphere-elasticjob-${RELEASE.VERSION}-src.zip.sha512
 shasum -c apache-shardingsphere-elasticjob-${RELEASE.VERSION}-lite-bin.tar.gz.sha512
-shasum -c apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-bin.tar.gz.sha512
+shasum -c apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-executor-bin.tar.gz.sha512
 shasum -c apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-scheduler-bin.tar.gz.sha512
 ```
 
-### Check gpg Signature
+**Check gpg Signature**
 
-First, import releaser's public key. 
-Import KEYS from SVN repository to local. (The releaser does not need to import again; the checking assistant needs to import it, with the user name filled as the releaser's. )
+First, import releaser's public key. Import KEYS from SVN repository to local. (The releaser does not need to import again; the checking assistant needs to import it, with the user name filled as the releaser's. )
 
 ```shell
 curl https://dist.apache.org/repos/dist/dev/shardingsphere/KEYS >> KEYS
@@ -209,13 +208,13 @@ Then, check the gpg signature.
 ```shell
 gpg --verify apache-shardingsphere-elasticjob-${RELEASE.VERSION}-src.zip.asc apache-shardingsphere-elasticjob-${RELEASE.VERSION}-src.zip
 gpg --verify apache-shardingsphere-elasticjob-${RELEASE.VERSION}-lite-bin.tar.gz.asc apache-shardingsphere-elasticjob-${RELEASE.VERSION}-lite-bin.tar.gz
-gpg --verify apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-bin.tar.gz.asc apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-bin.tar.gz
+gpg --verify apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-executor-bin.tar.gz.asc apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-executor-bin.tar.gz
 gpg --verify apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-scheduler-bin.tar.gz.asc apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-scheduler-bin.tar.gz
 ```
 
-### Check Released Files
+**Check Released Files**
 
-#### compare release source with github tag
+**Compare release source with github tag**
 
 ```
 curl -Lo tag-${RELEASE.VERSION}.zip https://github.com/apache/shardingsphere-elasticjob/archive/${RELEASE.VERSION}.zip
@@ -224,7 +223,7 @@ unzip apache-shardingsphere-elasticjob-${RELEASE.VERSION}-src.zip
 diff -r apache-shardingsphere-elasticjob-${RELEASE.VERSION}-src-release shardingsphere-elasticjob-${RELEASE.VERSION}
 ```
 
-#### Check source package
+**Check source package**
 
 *   Check whether source tarball is oversized for including nonessential files
 *   `LICENSE` and `NOTICE` files exist
@@ -234,9 +233,9 @@ diff -r apache-shardingsphere-elasticjob-${RELEASE.VERSION}-src-release sharding
 *   Codes can be compiled and pass the unit tests (./mvnw install)
 *   Check if there is any extra files or folders, empty folders for example
 
-#### Check binary packages
+**Check binary packages**
 
-Decompress `apache-shardingsphere-elasticjob-${RELEASE.VERSION}-lite-bin.tar.gz`, `apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-bin.tar.gz`
+Decompress `apache-shardingsphere-elasticjob-${RELEASE.VERSION}-lite-bin.tar.gz`, `apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-executor-bin.tar.gz`
 and `apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-scheduler-bin.tar.gz`
 to check the following items:
 
@@ -251,7 +250,7 @@ to check the following items:
 
 ## Call for a Vote
 
-### Vote procedure
+**Vote procedure**
 
 1. ShardingSphere community vote: send the vote e-mail to `dev@shardingsphere.apache.org`. 
 PMC needs to check the rightness of the version according to the document before they vote. 
@@ -259,7 +258,7 @@ After at least 72 hours and with at least 3 `+1 PMC member` votes, it can come t
 
 2. Announce the vote result: send the result vote e-mail to `dev@shardingsphere.apache.org`.
 
-### Vote Templates
+**Vote Templates**
 
 1. ShardingSphere Community Vote Template
 
@@ -330,31 +329,6 @@ Checklist for reference:
 
 2. Announce the vote result:
 
-Body:
-
-```
-The vote to release Apache ShardingSphere ElasticJob-${RELEASE.VERSION} has passed.
-
-7 PMC member +1 binding votes:
-
-xxx
-xxx
-xxx
-xxx
-xxx
-xxx
-xxx
-
-1 community +1 non-binding vote:
-xxx
-
-Thank you everyone for taking the time to review the release and help us. 
-```
-
-3. Announce the vote result:
-
-**Notice: Please include the votes from ShardingSphere community above.**
-
 Title：
 
 ```
@@ -379,7 +353,7 @@ I will process to publish the release and send ANNOUNCE.
 
 ## Finish the Release
 
-### Move source packages, binary packages and KEYS from the `dev` directory to `release` directory
+**1. Move source packages, binary packages and KEYS from the `dev` directory to `release` directory**
 
 ```shell
 svn mv https://dist.apache.org/repos/dist/dev/shardingsphere/elasticjob-${RELEASE.VERSION} https://dist.apache.org/repos/dist/release/shardingsphere/ -m "transfer packages for elasticjob-${RELEASE.VERSION}"
@@ -387,18 +361,60 @@ svn delete https://dist.apache.org/repos/dist/release/shardingsphere/KEYS -m "de
 svn cp https://dist.apache.org/repos/dist/dev/shardingsphere/KEYS https://dist.apache.org/repos/dist/release/shardingsphere/ -m "transfer KEYS for elasticjob-${RELEASE.VERSION}"
 ```
 
-### Find ShardingSphere in staging repository and click `Release`
+**2. Find ShardingSphere in staging repository and click `Release`**
 
-### Merge release branch to `master` and delete release branch on Github
+**3. Merge release branch to `master` and delete release branch on Github**
 
 ```shell
 git checkout master
 git merge origin/${RELEASE.VERSION}-release
-git push
+git pull
+git push origin master
 git push --delete origin ${RELEASE.VERSION}-release
+git branch -d ${RELEASE.VERSION}-release
 ```
 
-### Update the download page
+**4. Docker Release**
+
+4.1 Preparation
+
+Install and start docker service
+
+4.2 Compile Docker Image
+
+```shell
+git checkout ${RELEASE.VERSION}
+cd ~/elasticjob/elasticjob-distribution/elasticjob-cloud-scheduler-distribution/
+mvn clean package -Prelease,docker
+```
+
+4.3 Tag the local Docker Image
+
+Check the image ID through `docker images`, for example: e9ea51023687
+
+```shell
+docker tag e9ea51023687 apache/shardingsphere-elasticjob-cloud-scheduler:latest
+docker tag e9ea51023687 apache/shardingsphere-elasticjob-cloud-scheduler:${RELEASE.VERSION}
+```
+
+4.4 Publish Docker Image
+
+```shell
+docker push apache/shardingsphere-elasticjob-cloud-scheduler:latest
+docker push apache/shardingsphere-elasticjob-cloud-scheduler:${RELEASE_VERSION}
+```
+
+4.5 Confirm the successful release
+
+Login [Docker Hub](https://hub.docker.com/r/apache/shardingsphere-elasticjob-cloud-scheduler/) to check whether there are published images
+
+**5. Publish release in GitHub**
+
+Click `Edit` in [GitHub Releases](https://github.com/apache/shardingsphere-elasticjob/releases)'s `${RELEASE_VERSION}` version
+
+Edit version number and release notes, click `Publish release`
+
+**6. Update the download page**
 
 https://shardingsphere.apache.org/elasticjob/current/en/downloads/
 
@@ -408,13 +424,9 @@ GPG signatures and hashes (SHA* etc) should use URL start with `https://download
 
 Keep one latest versions in `Latest releases`.
 
-### Publish release in GitHub
+**7. Announce release completed by email**
 
-Click `Edit` in [GitHub Releases](https://github.com/apache/shardingsphere-elasticjob/releases)'s `${RELEASE_VERSION}` version
-
-Edit version number and release notes, click `Publish release`
-
-### Send e-mail to `dev@shardingsphere.apache.org` and `announce@apache.org` to announce the release is finished
+Send e-mail to `dev@shardingsphere.apache.org` and `announce@apache.org` to announce the release is finished
 
 Announcement e-mail template:
 
@@ -441,7 +453,7 @@ Release Notes: https://github.com/apache/shardingsphere-elasticjob/blob/master/R
 
 Website: http://shardingsphere.apache.org/elasticjob/
 
-ShardingSphere Resources:
+ShardingSphere-ElasticJob Resources:
 - Issue: https://github.com/apache/shardingsphere-elasticjob/issues/
 - Mailing list: dev@shardingsphere.apache.org
 - Documents: https://shardingsphere.apache.org/elasticjob/current/en/overview/

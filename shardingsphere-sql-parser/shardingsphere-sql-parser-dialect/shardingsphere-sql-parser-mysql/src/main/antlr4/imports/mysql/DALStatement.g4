@@ -24,13 +24,13 @@ use
     ;
 
 help
-    : HELP STRING_
+    : HELP string_
     ;
 
 explain
     : (DESC | DESCRIBE | EXPLAIN)
-    (tableName (columnName | pattern)?
-    | explainType? (explainableStatement | FOR CONNECTION connectionId_)
+    (tableName (columnRef | textString)?
+    | explainType? (explainableStatement | FOR CONNECTION connectionId)
     | ANALYZE select)
     ;
 
@@ -47,19 +47,15 @@ showTableStatus
     ;
 
 showColumns
-    : SHOW EXTENDED? FULL? (COLUMNS | FIELDS) fromTable fromSchema?  (showColumnLike_ | showWhereClause_)?
+    : SHOW EXTENDED? FULL? COLUMNS fromTable fromSchema? (showColumnLike | showWhereClause)?
     ;
 
 showIndex
-    : SHOW EXTENDED? (INDEX | INDEXES | KEYS) fromTable fromSchema? showWhereClause_?
+    : SHOW EXTENDED? (INDEX | INDEXES | KEYS) fromTable fromSchema? showWhereClause?
     ;
 
 showCreateTable
     : SHOW CREATE TABLE tableName
-    ;
-
-showOther
-    : SHOW
     ;
 
 fromSchema
@@ -74,16 +70,16 @@ showLike
     : LIKE stringLiterals
     ;
 
-showColumnLike_
+showColumnLike
     : LIKE stringLiterals
     ;
 
-showWhereClause_
+showWhereClause
     : WHERE expr
     ;
 
 showFilter
-    : showLike | showWhereClause_
+    : showLike | showWhereClause
     ;
 
 showProfileType
@@ -91,11 +87,23 @@ showProfileType
     ;
 
 setVariable
-    : SET variableAssign (COMMA_ variableAssign)*
+    : SET optionValueList
     ;
 
-variableAssign
-    : variable EQ_ expr
+optionValueList
+    : optionValueNoOptionType (COMMA_ optionValue)*
+    | optionType (internalVariableName EQ_ setExprOrDefault) (COMMA_ optionValue)*
+    ;
+
+optionValueNoOptionType
+    : internalVariableName EQ_ setExprOrDefault
+    | userVariable EQ_ expr
+    | setSystemVariable EQ_ setExprOrDefault
+    | NAMES (EQ_ expr | charsetName collateClause? | DEFAULT)
+    ;
+
+optionValue
+    : optionType internalVariableName EQ_ setExprOrDefault | optionValueNoOptionType
     ;
 
 showBinaryLogs
@@ -115,7 +123,7 @@ showCollation
     ;
 
 showCreateDatabase
-    : SHOW CREATE (DATABASE | SCHEMA) notExistClause_ schemaName
+    : SHOW CREATE (DATABASE | SCHEMA) notExistClause? schemaName
     ;
 
 showCreateEvent
@@ -143,7 +151,7 @@ showCreateView
     ;
 
 showEngine
-    : SHOW ENGINE engineName (STATUS | MUTEX)
+    : SHOW ENGINE engineRef (STATUS | MUTEX)
     ;
 
 showEngines
@@ -167,7 +175,7 @@ showFunctionStatus
     ;
 
 showGrant
-    : SHOW GRANTS (FOR userOrRole (USING roleName (COMMA_ roleName)+)?)?
+    : SHOW GRANTS (FOR userName (USING userName (COMMA_ userName)+)?)?
     ;
 
 showMasterStatus
@@ -235,24 +243,28 @@ showWarnings
     ;
 
 setCharacter
-    : SET (CHARACTER SET | CHARSET) (characterSetName_ | DEFAULT)
-    ;
-
-setName
-    : SET NAMES (characterSetName_ (COLLATE collationName_)? | DEFAULT)
+    : SET (CHARACTER SET | CHARSET) (charsetName | DEFAULT)
     ;
 
 clone
-    : CLONE cloneAction_
+    : CLONE cloneAction
     ;
 
-cloneAction_
-    : LOCAL DATA DIRECTORY EQ_? cloneDir SEMI_
-    | INSTANCE FROM cloneInstance IDENTIFIED BY STRING_ (DATA DIRECTORY EQ_? cloneDir)? (REQUIRE NO? SSL)?
+cloneAction
+    : LOCAL DATA DIRECTORY EQ_? cloneDir
+    | INSTANCE FROM cloneInstance IDENTIFIED BY string_ (DATA DIRECTORY EQ_? cloneDir)? (REQUIRE NO? SSL)?
     ;
 
 createUdf
     : CREATE AGGREGATE? FUNCTION functionName RETURNS (STRING | INTEGER | REAL | DECIMAL) SONAME shardLibraryName
+    ;
+
+install
+    : installComponent | installPlugin
+    ;
+
+uninstall
+    :uninstallComponent | uninstallPlugin
     ;
 
 installComponent
@@ -272,41 +284,44 @@ uninstallPlugin
     ;
 
 analyzeTable
-    : ANALYZE (NO_WRITE_TO_BINLOG | LOCAL)? TABLE (tableNames 
-    | tableName UPDATE HISTOGRAM ON columnNames (WITH NUMBER_ BUCKETS)
-    | tableName DROP HISTOGRAM ON columnNames)
+    : ANALYZE (NO_WRITE_TO_BINLOG | LOCAL)? tableOrTables tableList histogram?
+    ;
+
+histogram
+    : UPDATE HISTOGRAM ON columnNames (WITH NUMBER_ BUCKETS)?
+    | DROP HISTOGRAM ON columnNames
     ;
 
 checkTable
-    : CHECK TABLE tableNames checkTableOption_
+    : CHECK tableOrTables tableList checkTableOption?
     ;
 
-checkTableOption_
+checkTableOption
     : FOR UPGRADE | QUICK | FAST | MEDIUM | EXTENDED | CHANGE
     ;
 
 checksumTable
-    : CHECKSUM TABLE tableNames (QUICK | EXTENDED)
+    : CHECKSUM tableOrTables tableList (QUICK | EXTENDED)?
     ;
 optimizeTable
-    : OPTIMIZE (NO_WRITE_TO_BINLOG | LOCAL)? TABLE tableNames
+    : OPTIMIZE (NO_WRITE_TO_BINLOG | LOCAL)? tableOrTables tableList
     ;
 
 repairTable
-    : REPAIR (NO_WRITE_TO_BINLOG | LOCAL)? TABLE tableNames QUICK? EXTENDED? USE_FRM?
+    : REPAIR (NO_WRITE_TO_BINLOG | LOCAL)? tableOrTables tableList QUICK? EXTENDED? USE_FRM?
     ;
 
 alterResourceGroup
-    : ALTER RESOURCE GROUP groupName (VCPU EQ_? vcpuSpec_ (COMMA_ vcpuSpec_)*)? (THREAD_PRIORITY EQ_? NUMBER_)?
+    : ALTER RESOURCE GROUP groupName (VCPU EQ_? vcpuSpec (COMMA_ vcpuSpec)*)? (THREAD_PRIORITY EQ_? NUMBER_)?
     (ENABLE | DISABLE FORCE?)?
     ;
 
-vcpuSpec_
+vcpuSpec
     : NUMBER_ | NUMBER_ MINUS_ NUMBER_
     ;
 
 createResourceGroup
-    : CREATE RESOURCE GROUP groupName TYPE EQ_ (SYSTEM | USER) (VCPU EQ_? vcpuSpec_ (COMMA_ vcpuSpec_)*)? 
+    : CREATE RESOURCE GROUP groupName TYPE EQ_ (SYSTEM | USER) (VCPU EQ_? vcpuSpec (COMMA_ vcpuSpec)*)?
     (THREAD_PRIORITY EQ_? NUMBER_)? (ENABLE | DISABLE )?
     ;
 
@@ -323,7 +338,7 @@ binlog
     ;
 
 cacheIndex
-    : CACHE INDEX (tableIndexList (COMMA_ tableIndexList)* | tableName PARTITION LP_ partitionList RP_) IN IDENTIFIER_
+    : CACHE INDEX (tableIndexList (COMMA_ tableIndexList)* | tableName PARTITION LP_ partitionList RP_) IN (identifier | DEFAULT)
     ;
 
 tableIndexList
@@ -335,15 +350,15 @@ partitionList
     ;
 
 flush
-    : FLUSH (NO_WRITE_TO_BINLOG | LOCAL)? (flushOption_ (COMMA_ flushOption_)* | tablesOption_)
+    : FLUSH (NO_WRITE_TO_BINLOG | LOCAL)? (flushOption (COMMA_ flushOption)* | tablesOption)
     ;
 
-flushOption_
+flushOption
     : BINARY LOGS | ENGINE LOGS | ERROR LOGS | GENERAL LOGS | HOSTS | LOGS | PRIVILEGES | OPTIMIZER_COSTS
     | RELAY LOGS (FOR CHANNEL channelName)? | SLOW LOGS | STATUS | USER_RESOURCES 
     ;
 
-tablesOption_
+tablesOption
     : TABLES |TABLES tableName (COMMA_ tableName)* | TABLES WITH READ LOCK | TABLES tableName (COMMA_ tableName)* WITH READ LOCK
     | TABLES tableName (COMMA_ tableName)* FOR EXPORT
     ;
@@ -357,15 +372,17 @@ loadIndexInfo
     ;
 
 resetStatement
-    : RESET resetOption_ (COMMA_ resetOption_)*
+    : RESET resetOption (COMMA_ resetOption)*
+    | resetPersist
     ;
 
-resetOption_
-    : MASTER | SLAVE | QUERY CACHE
+resetOption
+    : MASTER (TO binaryLogFileIndexNumber)?
+    | SLAVE ALL? channelOption?
     ;
 
 resetPersist
-    : RESET PERSIST (existClause_ IDENTIFIER_)
+    : RESET PERSIST (existClause? identifier)?
     ;
 
 restart
@@ -381,9 +398,52 @@ explainType
     ;
 
 explainableStatement
-    : select | tableStatement | delete | insert | replace | update
+    : select | delete | insert | replace | update
     ;
 
 formatName
     : TRADITIONAL | JSON | TREE
+    ;
+
+show
+    : showDatabases
+    | showTables
+    | showTableStatus
+    | showBinaryLogs
+    | showColumns
+    | showIndex
+    | showCreateDatabase
+    | showCreateTable
+    | showBinlogEvents
+    | showCharacterSet
+    | showCollation
+    | showCreateEvent
+    | showCreateFunction
+    | showCreateProcedure
+    | showCreateTrigger
+    | showCreateUser
+    | showCreateView
+    | showEngine
+    | showEngines
+    | showErrors
+    | showEvents
+    | showFunctionCode
+    | showFunctionStatus
+    | showGrant
+    | showMasterStatus
+    | showPlugins
+    | showOpenTables
+    | showPrivileges
+    | showProcedureCode
+    | showProcesslist
+    | showProfile
+    | showProcedureStatus
+    | showProfiles
+    | showSlavehost
+    | showSlaveStatus
+    | showRelaylogEvent
+    | showStatus
+    | showTrriggers
+    | showWarnings
+    | showVariables
     ;

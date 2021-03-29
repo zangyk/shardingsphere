@@ -18,37 +18,28 @@
 package org.apache.shardingsphere.sharding.algorithm.sharding.datetime;
 
 import com.google.common.collect.Range;
-import org.apache.shardingsphere.infra.config.properties.ConfigurationProperties;
-import org.apache.shardingsphere.sharding.strategy.standard.StandardShardingStrategy;
-import org.apache.shardingsphere.sharding.strategy.value.ListRouteValue;
-import org.apache.shardingsphere.sharding.strategy.value.RangeRouteValue;
-import org.apache.shardingsphere.sharding.strategy.value.RouteValue;
+import org.apache.shardingsphere.sharding.api.sharding.standard.PreciseShardingValue;
+import org.apache.shardingsphere.sharding.api.sharding.standard.RangeShardingValue;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
+import java.util.LinkedList;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 public final class IntervalShardingAlgorithmTest {
     
-    private final List<String> availableTablesForMonthStrategy = new ArrayList<>();
+    private final Collection<String> availableTablesForQuarterDataSources = new LinkedList<>();
     
-    private final List<String> availableTablesForQuarterStrategy = new ArrayList<>();
+    private final Collection<String> availableTablesForMonthDataSources = new LinkedList<>();
     
-    private StandardShardingStrategy shardingStrategyByMonth;
+    private IntervalShardingAlgorithm shardingAlgorithmByQuarter;
     
-    private StandardShardingStrategy shardingStrategyByQuarter;
+    private IntervalShardingAlgorithm shardingAlgorithmByMonth;
     
     @Before
     public void setup() {
@@ -57,86 +48,72 @@ public final class IntervalShardingAlgorithmTest {
     }
     
     private void initShardStrategyByQuarter() {
-        IntervalShardingAlgorithm shardingAlgorithm = new IntervalShardingAlgorithm();
-        shardingAlgorithm.getProps().setProperty("datetime.pattern", "yyyy-MM-dd HH:mm:ss");
-        shardingAlgorithm.getProps().setProperty("datetime.lower", "2016-01-01 00:00:00");
-        shardingAlgorithm.getProps().setProperty("datetime.upper", "2021-12-31 00:00:00");
-        shardingAlgorithm.getProps().setProperty("sharding.suffix.pattern", "yyyyQQ");
-        shardingAlgorithm.getProps().setProperty("datetime.interval.amount", "3");
-        shardingAlgorithm.getProps().setProperty("datetime.interval.unit", "Months");
-        shardingAlgorithm.init();
-        this.shardingStrategyByQuarter = new StandardShardingStrategy("create_time", shardingAlgorithm);
+        shardingAlgorithmByQuarter = new IntervalShardingAlgorithm();
+        shardingAlgorithmByQuarter.getProps().setProperty("datetime-pattern", "yyyy-MM-dd HH:mm:ss");
+        shardingAlgorithmByQuarter.getProps().setProperty("datetime-lower", "2016-01-01 00:00:00");
+        shardingAlgorithmByQuarter.getProps().setProperty("datetime-upper", "2021-12-31 00:00:00");
+        shardingAlgorithmByQuarter.getProps().setProperty("sharding-suffix-pattern", "yyyyQQ");
+        shardingAlgorithmByQuarter.getProps().setProperty("datetime-interval-amount", "3");
+        shardingAlgorithmByQuarter.getProps().setProperty("datetime-interval-unit", "Months");
+        shardingAlgorithmByQuarter.init();
         for (int i = 2016; i <= 2020; i++) {
             for (int j = 1; j <= 4; j++) {
-                availableTablesForQuarterStrategy.add(String.format("t_order_%04d%02d", i, j));
+                availableTablesForQuarterDataSources.add(String.format("t_order_%04d%02d", i, j));
             }
         }
     }
     
     private void initShardStrategyByMonth() {
-        IntervalShardingAlgorithm shardingAlgorithm = new IntervalShardingAlgorithm();
-        shardingAlgorithm.getProps().setProperty("datetime.pattern", "yyyy-MM-dd HH:mm:ss");
-        shardingAlgorithm.getProps().setProperty("datetime.lower", "2016-01-01 00:00:00");
-        shardingAlgorithm.getProps().setProperty("datetime.upper", "2021-12-31 00:00:00");
-        shardingAlgorithm.getProps().setProperty("sharding.suffix.pattern", "yyyyMM");
-        shardingAlgorithm.getProps().setProperty("datetime.interval.amount", "1");
-        shardingAlgorithm.getProps().setProperty("datetime.interval.unit", "Months");
-        shardingAlgorithm.init();
-        this.shardingStrategyByMonth = new StandardShardingStrategy("create_time", shardingAlgorithm);
+        shardingAlgorithmByMonth = new IntervalShardingAlgorithm();
+        shardingAlgorithmByMonth.getProps().setProperty("datetime-pattern", "yyyy-MM-dd HH:mm:ss");
+        shardingAlgorithmByMonth.getProps().setProperty("datetime-lower", "2016-01-01 00:00:00");
+        shardingAlgorithmByMonth.getProps().setProperty("datetime-upper", "2021-12-31 00:00:00");
+        shardingAlgorithmByMonth.getProps().setProperty("sharding-suffix-pattern", "yyyyMM");
+        shardingAlgorithmByMonth.getProps().setProperty("datetime-interval-amount", "1");
+        shardingAlgorithmByMonth.getProps().setProperty("datetime-interval-unit", "Months");
+        shardingAlgorithmByMonth.init();
         for (int i = 2016; i <= 2020; i++) {
             for (int j = 1; j <= 12; j++) {
-                availableTablesForMonthStrategy.add(String.format("t_order_%04d%02d", i, j));
+                availableTablesForMonthDataSources.add(String.format("t_order_%04d%02d", i, j));
             }
         }
     }
     
     @Test
     public void assertPreciseDoShardingByQuarter() {
-        List<RouteValue> shardingValues = Collections.singletonList(new ListRouteValue<>("create_time", "t_order", Arrays.asList("2020-01-01 00:00:01", "2020-01-01 00:00:02", "2020-04-15 10:59:08")));
-        Collection<String> actual = shardingStrategyByQuarter.doSharding(availableTablesForQuarterStrategy, shardingValues, new ConfigurationProperties(new Properties()));
-        assertThat(actual.size(), is(2));
-        assertTrue(actual.contains("t_order_202001"));
-        assertTrue(actual.contains("t_order_202002"));
+        assertThat(shardingAlgorithmByQuarter.doSharding(availableTablesForQuarterDataSources, new PreciseShardingValue<>("t_order", "create_time", "2020-01-01 00:00:01")), is("t_order_202001"));
     }
     
     @Test
     public void assertRangeDoShardingByQuarter() {
-        Range<String> rangeValue = Range.closed("2019-10-15 10:59:08", "2020-04-08 10:59:08");
-        List<RouteValue> shardingValues = Collections.singletonList(new RangeRouteValue<>("create_time", "t_order", rangeValue));
-        Collection<String> actual = shardingStrategyByQuarter.doSharding(availableTablesForQuarterStrategy, shardingValues, new ConfigurationProperties(new Properties()));
+        Collection<String> actual = shardingAlgorithmByQuarter.doSharding(
+                availableTablesForQuarterDataSources, new RangeShardingValue<>("t_order", "create_time", Range.closed("2019-10-15 10:59:08", "2020-04-08 10:59:08")));
         assertThat(actual.size(), is(3));
     }
     
     @Test
     public void assertPreciseDoShardingByMonth() {
-        List<RouteValue> shardingValues = Collections.singletonList(new ListRouteValue<>("create_time", "t_order", Arrays.asList("2020-01-01 00:00:01", "2020-01-01 00:00:02", "2020-04-15 10:59:08")));
-        Collection<String> actual = shardingStrategyByMonth.doSharding(availableTablesForMonthStrategy, shardingValues, new ConfigurationProperties(new Properties()));
-        assertThat(actual.size(), is(2));
-        assertTrue(actual.contains("t_order_202001"));
-        assertTrue(actual.contains("t_order_202004"));
+        assertThat(shardingAlgorithmByMonth.doSharding(availableTablesForMonthDataSources, new PreciseShardingValue<>("t_order", "create_time", "2020-01-01 00:00:01")), is("t_order_202001"));
     }
     
     @Test
     public void assertRangeDoShardingByMonth() {
-        Range<String> rangeValue = Range.closed("2019-10-15 10:59:08", "2020-04-08 10:59:08");
-        List<RouteValue> shardingValues = Collections.singletonList(new RangeRouteValue<>("create_time", "t_order", rangeValue));
-        Collection<String> actual = shardingStrategyByMonth.doSharding(availableTablesForMonthStrategy, shardingValues, new ConfigurationProperties(new Properties()));
+        Collection<String> actual = shardingAlgorithmByMonth.doSharding(
+                availableTablesForMonthDataSources, new RangeShardingValue<>("t_order", "create_time", Range.closed("2019-10-15 10:59:08", "2020-04-08 10:59:08")));
         assertThat(actual.size(), is(7));
     }
     
     @Test
     public void assertLowerHalfRangeDoSharding() {
-        Range<String> rangeValue = Range.atLeast("2018-10-15 10:59:08");
-        List<RouteValue> shardingValues = Collections.singletonList(new RangeRouteValue<>("create_time", "t_order", rangeValue));
-        Collection<String> actual = shardingStrategyByQuarter.doSharding(availableTablesForQuarterStrategy, shardingValues, new ConfigurationProperties(new Properties()));
+        Collection<String> actual = shardingAlgorithmByQuarter.doSharding(
+                availableTablesForQuarterDataSources, new RangeShardingValue<>("t_order", "create_time", Range.atLeast("2018-10-15 10:59:08")));
         assertThat(actual.size(), is(9));
     }
     
     @Test
     public void assertUpperHalfRangeDoSharding() {
-        Range<String> rangeValue = Range.atMost("2019-09-01 00:00:00");
-        List<RouteValue> shardingValues = Collections.singletonList(new RangeRouteValue<>("create_time", "t_order", rangeValue));
-        Collection<String> actual = shardingStrategyByQuarter.doSharding(availableTablesForQuarterStrategy, shardingValues, new ConfigurationProperties(new Properties()));
+        Collection<String> actual = shardingAlgorithmByQuarter.doSharding(
+                availableTablesForQuarterDataSources, new RangeShardingValue<>("t_order", "create_time", Range.atMost("2019-09-01 00:00:00")));
         assertThat(actual.size(), is(15));
     }
     
@@ -149,7 +126,7 @@ public final class IntervalShardingAlgorithmTest {
         LocalDateTime localDateTime = LocalDateTime.parse(value.substring(0, inputFormat.length()), DateTimeFormatter.ofPattern(inputFormat));
         String tableNameShardedByQuarter = localDateTime.format(DateTimeFormatter.ofPattern(tableFormatByQuarter));
         String tableNameShardedByMonth = localDateTime.format(DateTimeFormatter.ofPattern(tableFormatByMonth));
-        assertEquals("202004", tableNameShardedByQuarter);
-        assertEquals("202010", tableNameShardedByMonth);
+        assertThat(tableNameShardedByQuarter, is("202004"));
+        assertThat(tableNameShardedByMonth, is("202010"));
     }
 }

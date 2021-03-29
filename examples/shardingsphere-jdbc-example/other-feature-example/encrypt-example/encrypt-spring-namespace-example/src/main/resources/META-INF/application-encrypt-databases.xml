@@ -44,7 +44,7 @@
     
     <encrypt:encrypt-algorithm id="name_encryptor" type="AES">
         <props>
-            <prop key="aes.key.value">123456</prop>
+            <prop key="aes-key-value">123456</prop>
         </props>
     </encrypt:encrypt-algorithm>
     <encrypt:encrypt-algorithm id="pwd_encryptor" type="assistedTest" />
@@ -58,7 +58,7 @@
     
     <shardingsphere:data-source id="encryptDataSource" data-source-names="ds" rule-refs="encryptRule">
         <props>
-            <prop key="query.with.cipher.column">true</prop>
+            <prop key="query-with-cipher-column">true</prop>
         </props>
     </shardingsphere:data-source>
     

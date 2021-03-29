@@ -18,11 +18,9 @@
 package org.apache.shardingsphere.proxy.backend.text.transaction;
 
 import org.apache.shardingsphere.proxy.backend.communication.jdbc.connection.BackendConnection;
-import org.apache.shardingsphere.proxy.backend.communication.jdbc.connection.BackendTransactionManager;
-import org.apache.shardingsphere.proxy.backend.response.BackendResponse;
-import org.apache.shardingsphere.proxy.backend.response.error.ErrorResponse;
-import org.apache.shardingsphere.proxy.backend.response.query.QueryData;
-import org.apache.shardingsphere.proxy.backend.response.update.UpdateResponse;
+import org.apache.shardingsphere.proxy.backend.communication.jdbc.transaction.BackendTransactionManager;
+import org.apache.shardingsphere.proxy.backend.response.header.ResponseHeader;
+import org.apache.shardingsphere.proxy.backend.response.header.update.UpdateResponseHeader;
 import org.apache.shardingsphere.proxy.backend.text.TextProtocolBackendHandler;
 import org.apache.shardingsphere.transaction.core.TransactionOperationType;
 
@@ -44,15 +42,7 @@ public final class TransactionBackendHandler implements TextProtocolBackendHandl
     }
     
     @Override
-    public BackendResponse execute() {
-        try {
-            return doTransaction();
-        } catch (final SQLException ex) {
-            return new ErrorResponse(ex);
-        }
-    }
-    
-    private BackendResponse doTransaction() throws SQLException {
+    public ResponseHeader execute() throws SQLException {
         switch (operationType) {
             case BEGIN:
                 backendTransactionManager.begin();
@@ -66,16 +56,6 @@ public final class TransactionBackendHandler implements TextProtocolBackendHandl
             default:
                 throw new SQLFeatureNotSupportedException(operationType.name());
         }
-        return new UpdateResponse();
-    }
-    
-    @Override
-    public boolean next() {
-        return false;
-    }
-    
-    @Override
-    public QueryData getQueryData() {
-        return null;
+        return new UpdateResponseHeader(null);
     }
 }

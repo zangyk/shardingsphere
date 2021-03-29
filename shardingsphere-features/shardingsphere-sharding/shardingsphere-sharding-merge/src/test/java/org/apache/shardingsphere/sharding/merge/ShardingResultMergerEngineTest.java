@@ -17,27 +17,32 @@
 
 package org.apache.shardingsphere.sharding.merge;
 
+import org.apache.shardingsphere.infra.config.properties.ConfigurationProperties;
+import org.apache.shardingsphere.infra.database.type.DatabaseTypeRegistry;
+import org.apache.shardingsphere.infra.merge.engine.merger.impl.TransparentResultMerger;
 import org.apache.shardingsphere.sharding.merge.dal.ShardingDALResultMerger;
 import org.apache.shardingsphere.sharding.merge.dql.ShardingDQLResultMerger;
-import org.apache.shardingsphere.sql.parser.binder.metadata.schema.SchemaMetaData;
-import org.apache.shardingsphere.sql.parser.binder.segment.select.groupby.GroupByContext;
-import org.apache.shardingsphere.sql.parser.binder.segment.select.orderby.OrderByContext;
-import org.apache.shardingsphere.sql.parser.binder.segment.select.pagination.PaginationContext;
-import org.apache.shardingsphere.sql.parser.binder.segment.select.projection.ProjectionsContext;
-import org.apache.shardingsphere.sql.parser.binder.statement.CommonSQLStatementContext;
-import org.apache.shardingsphere.sql.parser.binder.statement.SQLStatementContext;
-import org.apache.shardingsphere.sql.parser.binder.statement.dml.InsertStatementContext;
-import org.apache.shardingsphere.sql.parser.binder.statement.dml.SelectStatementContext;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.column.ColumnSegment;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.column.InsertColumnsSegment;
-import org.apache.shardingsphere.sql.parser.sql.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.statement.dal.dialect.postgresql.ShowStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.dml.InsertStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.dml.SelectStatement;
-import org.apache.shardingsphere.sql.parser.sql.value.identifier.IdentifierValue;
-import org.apache.shardingsphere.infra.config.properties.ConfigurationProperties;
-import org.apache.shardingsphere.infra.database.type.DatabaseTypes;
-import org.apache.shardingsphere.infra.merge.engine.merger.impl.TransparentResultMerger;
+import org.apache.shardingsphere.infra.metadata.schema.ShardingSphereSchema;
+import org.apache.shardingsphere.infra.binder.segment.select.groupby.GroupByContext;
+import org.apache.shardingsphere.infra.binder.segment.select.orderby.OrderByContext;
+import org.apache.shardingsphere.infra.binder.segment.select.pagination.PaginationContext;
+import org.apache.shardingsphere.infra.binder.segment.select.projection.ProjectionsContext;
+import org.apache.shardingsphere.infra.binder.statement.CommonSQLStatementContext;
+import org.apache.shardingsphere.infra.binder.statement.dml.InsertStatementContext;
+import org.apache.shardingsphere.infra.binder.statement.dml.SelectStatementContext;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.column.ColumnSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.column.InsertColumnsSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.InsertStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dml.MySQLInsertStatement;
+import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dml.MySQLSelectStatement;
+import org.apache.shardingsphere.sql.parser.sql.dialect.statement.oracle.dml.OracleSelectStatement;
+import org.apache.shardingsphere.sql.parser.sql.dialect.statement.postgresql.dal.PostgreSQLShowStatement;
+import org.apache.shardingsphere.sql.parser.sql.dialect.statement.postgresql.dml.PostgreSQLSelectStatement;
+import org.apache.shardingsphere.sql.parser.sql.dialect.statement.sql92.dml.SQL92SelectStatement;
+import org.apache.shardingsphere.sql.parser.sql.dialect.statement.sqlserver.dml.SQLServerSelectStatement;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -48,32 +53,55 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 public final class ShardingResultMergerEngineTest {
-    
+
     @Test
-    public void assertNewInstanceWithSelectStatement() {
-        ConfigurationProperties props = new ConfigurationProperties(new Properties());
-        SQLStatementContext sqlStatementContext = new SelectStatementContext(new SelectStatement(),
-                new GroupByContext(Collections.emptyList(), 0), new OrderByContext(Collections.emptyList(), false),
-                new ProjectionsContext(0, 0, false, Collections.emptyList()), new PaginationContext(null, null, Collections.emptyList()));
-        assertThat(new ShardingResultMergerEngine().newInstance(DatabaseTypes.getActualDatabaseType("MySQL"), null, props, sqlStatementContext), instanceOf(ShardingDQLResultMerger.class));
+    public void assertNewInstanceWithSelectStatementForMySQL() {
+        assertNewInstanceWithSelectStatement(new MySQLSelectStatement());
+    }
+
+    @Test
+    public void assertNewInstanceWithSelectStatementForOracle() {
+        assertNewInstanceWithSelectStatement(new OracleSelectStatement());
+    }
+
+    @Test
+    public void assertNewInstanceWithSelectStatementForPostgreSQL() {
+        assertNewInstanceWithSelectStatement(new PostgreSQLSelectStatement());
+    }
+
+    @Test
+    public void assertNewInstanceWithSelectStatementForSQL92() {
+        assertNewInstanceWithSelectStatement(new SQL92SelectStatement());
+    }
+
+    @Test
+    public void assertNewInstanceWithSelectStatementForSQLServer() {
+        assertNewInstanceWithSelectStatement(new SQLServerSelectStatement());
     }
     
-    @SuppressWarnings("unchecked")
+    private void assertNewInstanceWithSelectStatement(final SelectStatement selectStatement) {
+        ConfigurationProperties props = new ConfigurationProperties(new Properties());
+        SelectStatementContext sqlStatementContext = new SelectStatementContext(selectStatement,
+                new GroupByContext(Collections.emptyList(), 0), new OrderByContext(Collections.emptyList(), false),
+                new ProjectionsContext(0, 0, false, Collections.emptyList()), new PaginationContext(null, null, Collections.emptyList()));
+        assertThat(new ShardingResultMergerEngine().newInstance(DatabaseTypeRegistry.getActualDatabaseType("MySQL"), null, props, sqlStatementContext), instanceOf(ShardingDQLResultMerger.class));
+    }
+    
     @Test
     public void assertNewInstanceWithDALStatement() {
         ConfigurationProperties props = new ConfigurationProperties(new Properties());
-        SQLStatementContext sqlStatementContext = new CommonSQLStatementContext(new ShowStatement());
-        assertThat(new ShardingResultMergerEngine().newInstance(DatabaseTypes.getActualDatabaseType("MySQL"), null, props, sqlStatementContext), instanceOf(ShardingDALResultMerger.class));
+        CommonSQLStatementContext<PostgreSQLShowStatement> sqlStatementContext = new CommonSQLStatementContext<>(new PostgreSQLShowStatement());
+        assertThat(new ShardingResultMergerEngine().newInstance(DatabaseTypeRegistry.getActualDatabaseType("MySQL"), null, props, sqlStatementContext), instanceOf(ShardingDALResultMerger.class));
     }
     
     @Test
     public void assertNewInstanceWithOtherStatement() {
-        InsertStatement insertStatement = new InsertStatement();
+        InsertStatement insertStatement = new MySQLInsertStatement();
         InsertColumnsSegment insertColumnsSegment = new InsertColumnsSegment(0, 0, Collections.singletonList(new ColumnSegment(0, 0, new IdentifierValue("col"))));
         insertStatement.setTable(new SimpleTableSegment(0, 0, new IdentifierValue("tbl")));
         insertStatement.setInsertColumns(insertColumnsSegment);
-        SQLStatementContext sqlStatementContext = new InsertStatementContext(mock(SchemaMetaData.class), Collections.emptyList(), insertStatement);
+        InsertStatementContext sqlStatementContext = new InsertStatementContext(mock(ShardingSphereSchema.class), Collections.emptyList(), insertStatement);
         ConfigurationProperties props = new ConfigurationProperties(new Properties());
-        assertThat(new ShardingResultMergerEngine().newInstance(DatabaseTypes.getActualDatabaseType("MySQL"), null, props, sqlStatementContext), instanceOf(TransparentResultMerger.class));
+        assertThat(new ShardingResultMergerEngine().newInstance(DatabaseTypeRegistry.getActualDatabaseType("MySQL"), null, props, sqlStatementContext), instanceOf(TransparentResultMerger.class));
     }
 }

@@ -17,7 +17,7 @@
 
 package org.apache.shardingsphere.proxy.backend.text.sctl.hint.internal.executor;
 
-import org.apache.shardingsphere.infra.executor.sql.raw.execute.result.query.QueryHeader;
+import org.apache.shardingsphere.proxy.backend.response.header.query.impl.QueryHeader;
 import org.apache.shardingsphere.infra.hint.HintManager;
 import org.apache.shardingsphere.infra.merge.result.MergedResult;
 import org.apache.shardingsphere.proxy.backend.text.sctl.hint.internal.HintShardingType;
@@ -36,23 +36,23 @@ public final class HintShowStatusExecutor extends AbstractHintQueryExecutor<Hint
     
     @Override
     protected List<QueryHeader> createQueryHeaders() {
-        List<QueryHeader> queryHeaders = new ArrayList<>(2);
-        queryHeaders.add(new QueryHeader("", "", "master_only", "", 5, Types.CHAR, 0, false, false, false, false));
-        queryHeaders.add(new QueryHeader("", "", "sharding_type", "", 255, Types.CHAR, 0, false, false, false, false));
-        return queryHeaders;
+        List<QueryHeader> result = new ArrayList<>(2);
+        result.add(new QueryHeader("", "", "primary_only", "", Types.CHAR, "CHAR", 5, 0, false, false, false, false));
+        result.add(new QueryHeader("", "", "sharding_type", "", Types.CHAR, "CHAR", 255, 0, false, false, false, false));
+        return result;
     }
     
     @Override
     protected MergedResult createMergedResult() {
         HintShardingType shardingType = HintManager.isDatabaseShardingOnly() ? HintShardingType.DATABASES_ONLY : HintShardingType.DATABASES_TABLES;
-        List<Object> row = createRow(HintManager.isMasterRouteOnly(), shardingType);
+        List<Object> row = createRow(HintManager.isWriteRouteOnly(), shardingType);
         return new MultipleLocalDataMergedResult(Collections.singletonList(row));
     }
     
-    private List<Object> createRow(final boolean masterOnly, final HintShardingType shardingType) {
-        List<Object> row = new ArrayList<>(2);
-        row.add(String.valueOf(masterOnly).toLowerCase());
-        row.add(String.valueOf(shardingType).toLowerCase());
-        return row;
+    private List<Object> createRow(final boolean primaryOnly, final HintShardingType shardingType) {
+        List<Object> result = new ArrayList<>(2);
+        result.add(String.valueOf(primaryOnly).toLowerCase());
+        result.add(String.valueOf(shardingType).toLowerCase());
+        return result;
     }
 }

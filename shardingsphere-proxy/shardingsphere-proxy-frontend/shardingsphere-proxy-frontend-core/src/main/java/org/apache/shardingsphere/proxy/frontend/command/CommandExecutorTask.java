@@ -19,26 +19,23 @@ package org.apache.shardingsphere.proxy.frontend.command;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
-import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.shardingsphere.control.panel.spi.engine.SingletonFacadeEngine;
-import org.apache.shardingsphere.control.panel.spi.metrics.MetricsHandlerFacade;
 import org.apache.shardingsphere.db.protocol.packet.CommandPacket;
 import org.apache.shardingsphere.db.protocol.packet.CommandPacketType;
 import org.apache.shardingsphere.db.protocol.packet.DatabasePacket;
 import org.apache.shardingsphere.db.protocol.payload.PacketPayload;
-import org.apache.shardingsphere.metrics.enums.MetricsLabelEnum;
+import org.apache.shardingsphere.readwrite.splitting.route.engine.impl.PrimaryVisitedManager;
 import org.apache.shardingsphere.proxy.backend.communication.jdbc.connection.BackendConnection;
-import org.apache.shardingsphere.proxy.frontend.api.CommandExecutor;
-import org.apache.shardingsphere.proxy.frontend.api.QueryCommandExecutor;
-import org.apache.shardingsphere.proxy.frontend.engine.CommandExecuteEngine;
+import org.apache.shardingsphere.proxy.backend.communication.jdbc.connection.ConnectionStatus;
+import org.apache.shardingsphere.proxy.frontend.command.executor.CommandExecutor;
+import org.apache.shardingsphere.proxy.frontend.command.executor.QueryCommandExecutor;
+import org.apache.shardingsphere.proxy.frontend.exception.ExpectedExceptions;
 import org.apache.shardingsphere.proxy.frontend.spi.DatabaseProtocolFrontendEngine;
-import org.apache.shardingsphere.infra.hook.RootInvokeHook;
-import org.apache.shardingsphere.infra.hook.SPIRootInvokeHook;
 
 import java.sql.SQLException;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.Optional;
 
 /**
@@ -64,36 +61,27 @@ public final class CommandExecutorTask implements Runnable {
      */
     @Override
     public void run() {
-        RootInvokeHook rootInvokeHook = new SPIRootInvokeHook();
-        rootInvokeHook.start();
-        Supplier<Boolean> histogramSupplier = null;
-        Optional<MetricsHandlerFacade> handlerFacade = SingletonFacadeEngine.buildMetrics();
-        if (handlerFacade.isPresent()) {
-            histogramSupplier = handlerFacade.get().histogramStartTimer(MetricsLabelEnum.REQUEST_LATENCY.getName());
-        }
-        int connectionSize = 0;
         boolean isNeedFlush = false;
-        try (BackendConnection backendConnection = this.backendConnection;
-             PacketPayload payload = databaseProtocolFrontendEngine.getCodecEngine().createPacketPayload((ByteBuf) message)) {
-            backendConnection.getStateHandler().waitUntilConnectionReleasedIfNecessary();
-            backendConnection.getStateHandler().setRunningStatusIfNecessary();
+        try (PacketPayload payload = databaseProtocolFrontendEngine.getCodecEngine().createPacketPayload((ByteBuf) message)) {
+            ConnectionStatus connectionStatus = backendConnection.getConnectionStatus();
+            if (!backendConnection.getTransactionStatus().isInConnectionHeldTransaction()) {
+                connectionStatus.waitUntilConnectionRelease();
+                connectionStatus.switchToUsing();
+            }
             isNeedFlush = executeCommand(context, payload, backendConnection);
-            connectionSize = backendConnection.getConnectionSize();
             // CHECKSTYLE:OFF
         } catch (final Exception ex) {
             // CHECKSTYLE:ON
-            log.error("Exception occur: ", ex);
-            context.writeAndFlush(databaseProtocolFrontendEngine.getCommandExecuteEngine().getErrorPacket(ex));
-            Optional<DatabasePacket> databasePacket = databaseProtocolFrontendEngine.getCommandExecuteEngine().getOtherPacket();
-            databasePacket.ifPresent(context::writeAndFlush);
+            processException(ex);
         } finally {
+            Collection<SQLException> exceptions = closeExecutionResources();
             if (isNeedFlush) {
                 context.flush();
             }
-            rootInvokeHook.finish(connectionSize);
-            if (null != histogramSupplier) {
-                histogramSupplier.get();
+            if (!backendConnection.getTransactionStatus().isInConnectionHeldTransaction()) {
+                exceptions.addAll(backendConnection.closeConnections(false));
             }
+            processClosedExceptions(exceptions);
         }
     }
     
@@ -102,7 +90,7 @@ public final class CommandExecutorTask implements Runnable {
         CommandPacketType type = commandExecuteEngine.getCommandPacketType(payload);
         CommandPacket commandPacket = commandExecuteEngine.getCommandPacket(payload, type, backendConnection);
         CommandExecutor commandExecutor = commandExecuteEngine.getCommandExecutor(type, commandPacket, backendConnection);
-        Collection<DatabasePacket> responsePackets = commandExecutor.execute();
+        Collection<DatabasePacket<?>> responsePackets = commandExecutor.execute();
         if (responsePackets.isEmpty()) {
             return false;
         }
@@ -112,5 +100,34 @@ public final class CommandExecutorTask implements Runnable {
             return true;
         }
         return databaseProtocolFrontendEngine.getFrontendContext().isFlushForPerCommandPacket();
+    }
+    
+    private void processException(final Exception cause) {
+        context.writeAndFlush(databaseProtocolFrontendEngine.getCommandExecuteEngine().getErrorPacket(cause));
+        Optional<DatabasePacket<?>> databasePacket = databaseProtocolFrontendEngine.getCommandExecuteEngine().getOtherPacket();
+        databasePacket.ifPresent(context::writeAndFlush);
+        if (!ExpectedExceptions.isExpected(cause.getClass())) {
+            log.error("Exception occur: ", cause);
+        }
+    }
+    
+    private Collection<SQLException> closeExecutionResources() {
+        Collection<SQLException> result = new LinkedList<>();
+        PrimaryVisitedManager.clear();
+        result.addAll(backendConnection.closeResultSets());
+        result.addAll(backendConnection.closeStatements());
+        result.addAll(backendConnection.closeCalciteExecutor());
+        return result;
+    }
+    
+    private void processClosedExceptions(final Collection<SQLException> exceptions) {
+        if (exceptions.isEmpty()) {
+            return;
+        }
+        SQLException ex = new SQLException("");
+        for (SQLException each : exceptions) {
+            ex.setNextException(each);
+        }
+        processException(ex);
     }
 }

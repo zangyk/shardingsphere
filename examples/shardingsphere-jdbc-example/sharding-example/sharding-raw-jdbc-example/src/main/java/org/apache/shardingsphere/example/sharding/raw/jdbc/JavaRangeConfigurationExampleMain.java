@@ -30,15 +30,15 @@ import javax.sql.DataSource;
 import java.sql.SQLException;
 
 /*
- * Please make sure master-slave data sync on MySQL is running correctly. Otherwise this example will query empty data from slave.
+ * Please make sure primary replica data replication sync on MySQL is running correctly. Otherwise this example will query empty data from replica.
  */
-public class JavaRangeConfigurationExampleMain {
+public final class JavaRangeConfigurationExampleMain {
     
     private static ShardingType shardingType = ShardingType.SHARDING_DATABASES;
 //    private static ShardingType shardingType = ShardingType.SHARDING_TABLES;
 //    private static ShardingType shardingType = ShardingType.SHARDING_DATABASES_AND_TABLES;
-//    private static ShardingType shardingType = ShardingType.MASTER_SLAVE;
-//    private static ShardingType shardingType = ShardingType.SHARDING_MASTER_SLAVE;
+//    private static ShardingType shardingType = ShardingType.REPLICA_QUERY;
+//    private static ShardingType shardingType = ShardingType.SHARDING_REPLICA_QUERY;
     
     public static void main(final String[] args) throws SQLException {
         DataSource dataSource = RangeDataSourceFactory.newInstance(shardingType);

@@ -21,7 +21,7 @@ import org.apache.shardingsphere.encrypt.api.config.rule.EncryptColumnRuleConfig
 import org.apache.shardingsphere.encrypt.api.config.rule.EncryptTableRuleConfiguration;
 import org.apache.shardingsphere.encrypt.yaml.config.rule.YamlEncryptColumnRuleConfiguration;
 import org.apache.shardingsphere.encrypt.yaml.config.rule.YamlEncryptTableRuleConfiguration;
-import org.apache.shardingsphere.infra.yaml.swapper.YamlSwapper;
+import org.apache.shardingsphere.infra.yaml.swapper.YamlConfigurationSwapper;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -30,7 +30,7 @@ import java.util.Map.Entry;
 /**
  * Encrypt table configuration YAML swapper.
  */
-public final class EncryptTableRuleConfigurationYamlSwapper implements YamlSwapper<YamlEncryptTableRuleConfiguration, EncryptTableRuleConfiguration> {
+public final class EncryptTableRuleConfigurationYamlSwapper implements YamlConfigurationSwapper<YamlEncryptTableRuleConfiguration, EncryptTableRuleConfiguration> {
     
     private final EncryptColumnRuleConfigurationYamlSwapper columnYamlSwapper = new EncryptColumnRuleConfigurationYamlSwapper();
     
@@ -47,9 +47,9 @@ public final class EncryptTableRuleConfigurationYamlSwapper implements YamlSwapp
     public EncryptTableRuleConfiguration swapToObject(final YamlEncryptTableRuleConfiguration yamlConfig) {
         Collection<EncryptColumnRuleConfiguration> columns = new LinkedList<>();
         for (Entry<String, YamlEncryptColumnRuleConfiguration> entry : yamlConfig.getColumns().entrySet()) {
-            YamlEncryptColumnRuleConfiguration yamlEncryptColumnRuleConfiguration = entry.getValue();
-            yamlEncryptColumnRuleConfiguration.setLogicColumn(entry.getKey());
-            columns.add(columnYamlSwapper.swapToObject(yamlEncryptColumnRuleConfiguration));
+            YamlEncryptColumnRuleConfiguration yamlEncryptColumnRuleConfig = entry.getValue();
+            yamlEncryptColumnRuleConfig.setLogicColumn(entry.getKey());
+            columns.add(columnYamlSwapper.swapToObject(yamlEncryptColumnRuleConfig));
         }
         return new EncryptTableRuleConfiguration(yamlConfig.getName(), columns);
     }

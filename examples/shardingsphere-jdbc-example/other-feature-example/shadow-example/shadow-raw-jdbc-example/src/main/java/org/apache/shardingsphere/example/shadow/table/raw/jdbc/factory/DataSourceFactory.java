@@ -18,7 +18,7 @@
 package org.apache.shardingsphere.example.shadow.table.raw.jdbc.factory;
 
 import org.apache.shardingsphere.example.shadow.table.raw.jdbc.config.EncryptShadowDatabasesConfiguration;
-import org.apache.shardingsphere.example.shadow.table.raw.jdbc.config.MasterSlaveShadowDatabasesConfiguration;
+import org.apache.shardingsphere.example.shadow.table.raw.jdbc.config.ReadWriteSplittingShadowDatabasesConfiguration;
 import org.apache.shardingsphere.example.shadow.table.raw.jdbc.config.ShadowDatabasesConfiguration;
 import org.apache.shardingsphere.example.shadow.table.raw.jdbc.config.ShardingShadowDatabasesConfiguration;
 import org.apache.shardingsphere.example.type.ShardingType;
@@ -26,7 +26,7 @@ import org.apache.shardingsphere.example.type.ShardingType;
 import javax.sql.DataSource;
 import java.sql.SQLException;
 
-public class DataSourceFactory {
+public final class DataSourceFactory {
     
     public static DataSource newInstance(final ShardingType shardingType) throws SQLException {
         switch (shardingType) {
@@ -36,8 +36,8 @@ public class DataSourceFactory {
                 return new ShardingShadowDatabasesConfiguration().getDataSource();
             case ENCRYPT_SHADOW:
                 return new EncryptShadowDatabasesConfiguration().getDataSource();
-            case MASTER_SLAVE_SHADOW:
-                return new MasterSlaveShadowDatabasesConfiguration().getDataSource();
+            case READ_WRITE_SPLITTING:
+                return new ReadWriteSplittingShadowDatabasesConfiguration().getDataSource();
             default:
                 throw new UnsupportedOperationException(shardingType.name());
         }

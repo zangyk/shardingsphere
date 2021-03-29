@@ -17,22 +17,22 @@
 
 package org.apache.shardingsphere.proxy.frontend.mysql.command.query.text.fieldlist;
 
-import org.apache.shardingsphere.db.protocol.mysql.constant.MySQLColumnType;
+import org.apache.shardingsphere.db.protocol.mysql.constant.MySQLBinaryColumnType;
 import org.apache.shardingsphere.db.protocol.mysql.packet.command.query.MySQLColumnDefinition41Packet;
 import org.apache.shardingsphere.db.protocol.mysql.packet.command.query.text.fieldlist.MySQLComFieldListPacket;
 import org.apache.shardingsphere.db.protocol.mysql.packet.generic.MySQLEofPacket;
 import org.apache.shardingsphere.db.protocol.packet.DatabasePacket;
+import org.apache.shardingsphere.infra.database.type.DatabaseTypeRegistry;
 import org.apache.shardingsphere.proxy.backend.communication.DatabaseCommunicationEngine;
 import org.apache.shardingsphere.proxy.backend.communication.DatabaseCommunicationEngineFactory;
 import org.apache.shardingsphere.proxy.backend.communication.jdbc.connection.BackendConnection;
-import org.apache.shardingsphere.proxy.backend.response.BackendResponse;
-import org.apache.shardingsphere.proxy.backend.response.error.ErrorResponse;
-import org.apache.shardingsphere.proxy.frontend.api.CommandExecutor;
-import org.apache.shardingsphere.proxy.frontend.mysql.MySQLErrPacketFactory;
+import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
+import org.apache.shardingsphere.proxy.frontend.command.executor.CommandExecutor;
+import org.apache.shardingsphere.infra.parser.ShardingSphereSQLParserEngine;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
 
 import java.sql.SQLException;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.LinkedList;
 
 /**
@@ -48,30 +48,30 @@ public final class MySQLComFieldListPacketExecutor implements CommandExecutor {
     
     private final DatabaseCommunicationEngine databaseCommunicationEngine;
     
+    private int currentSequenceId;
+    
     public MySQLComFieldListPacketExecutor(final MySQLComFieldListPacket packet, final BackendConnection backendConnection) {
         this.packet = packet;
-        schemaName = backendConnection.getSchema().getName();
-        databaseCommunicationEngine = DatabaseCommunicationEngineFactory.getInstance().newTextProtocolInstance(backendConnection.getSchema(), getShowColumnsSQL(), backendConnection);
+        schemaName = backendConnection.getSchemaName();
+        String sql = String.format(SQL, packet.getTable(), schemaName);
+        ShardingSphereSQLParserEngine sqlStatementParserEngine = new ShardingSphereSQLParserEngine(
+                DatabaseTypeRegistry.getTrunkDatabaseTypeName(ProxyContext.getInstance().getMetaDataContexts().getMetaData(schemaName).getResource().getDatabaseType()));
+        SQLStatement sqlStatement = sqlStatementParserEngine.parse(sql, false);
+        databaseCommunicationEngine = DatabaseCommunicationEngineFactory.getInstance().newTextProtocolInstance(sqlStatement, sql, backendConnection);
     }
     
     @Override
-    public Collection<DatabasePacket> execute() throws SQLException {
-        BackendResponse backendResponse = databaseCommunicationEngine.execute();
-        return backendResponse instanceof ErrorResponse ? Collections.singletonList(MySQLErrPacketFactory.newInstance(1, ((ErrorResponse) backendResponse).getCause())) 
-                : getColumnDefinition41Packets();
+    public Collection<DatabasePacket<?>> execute() throws SQLException {
+        databaseCommunicationEngine.execute();
+        return createColumnDefinition41Packets();
     }
     
-    private String getShowColumnsSQL() {
-        return String.format(SQL, packet.getTable(), schemaName);
-    }
-    
-    private Collection<DatabasePacket> getColumnDefinition41Packets() throws SQLException {
-        Collection<DatabasePacket> result = new LinkedList<>();
-        int currentSequenceId = 0;
+    private Collection<DatabasePacket<?>> createColumnDefinition41Packets() throws SQLException {
+        Collection<DatabasePacket<?>> result = new LinkedList<>();
         while (databaseCommunicationEngine.next()) {
-            String columnName = databaseCommunicationEngine.getQueryData().getData().get(0).toString();
-            result.add(new MySQLColumnDefinition41Packet(++currentSequenceId,
-                    schemaName, packet.getTable(), packet.getTable(), columnName, columnName, 100, MySQLColumnType.MYSQL_TYPE_VARCHAR, 0));
+            String columnName = databaseCommunicationEngine.getQueryResponseRow().getCells().iterator().next().getData().toString();
+            result.add(new MySQLColumnDefinition41Packet(
+                    ++currentSequenceId, schemaName, packet.getTable(), packet.getTable(), columnName, columnName, 100, MySQLBinaryColumnType.MYSQL_TYPE_VARCHAR, 0));
         }
         result.add(new MySQLEofPacket(++currentSequenceId));
         return result;

@@ -25,9 +25,9 @@ import org.apache.shardingsphere.encrypt.rewrite.condition.impl.EncryptInConditi
 import org.apache.shardingsphere.encrypt.rewrite.token.generator.BaseEncryptSQLTokenGenerator;
 import org.apache.shardingsphere.encrypt.rewrite.token.pojo.EncryptPredicateEqualRightValueToken;
 import org.apache.shardingsphere.encrypt.rewrite.token.pojo.EncryptPredicateInRightValueToken;
-import org.apache.shardingsphere.sql.parser.binder.metadata.schema.SchemaMetaData;
-import org.apache.shardingsphere.sql.parser.binder.statement.SQLStatementContext;
-import org.apache.shardingsphere.sql.parser.binder.type.WhereAvailable;
+import org.apache.shardingsphere.infra.metadata.schema.ShardingSphereSchema;
+import org.apache.shardingsphere.infra.binder.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.binder.type.WhereAvailable;
 import org.apache.shardingsphere.infra.rewrite.sql.token.generator.CollectionSQLTokenGenerator;
 import org.apache.shardingsphere.infra.rewrite.sql.token.generator.aware.ParametersAware;
 import org.apache.shardingsphere.infra.rewrite.sql.token.generator.aware.SchemaMetaDataAware;
@@ -48,7 +48,7 @@ import java.util.Optional;
 public final class EncryptPredicateRightValueTokenGenerator extends BaseEncryptSQLTokenGenerator 
         implements CollectionSQLTokenGenerator, SchemaMetaDataAware, ParametersAware, QueryWithCipherColumnAware {
     
-    private SchemaMetaData schemaMetaData;
+    private ShardingSphereSchema schema;
     
     private List<Object> parameters;
     
@@ -61,7 +61,7 @@ public final class EncryptPredicateRightValueTokenGenerator extends BaseEncryptS
     
     @Override
     public Collection<SQLToken> generateSQLTokens(final SQLStatementContext sqlStatementContext) {
-        List<EncryptCondition> encryptConditions = new EncryptConditionEngine(getEncryptRule(), schemaMetaData).createEncryptConditions(sqlStatementContext);
+        List<EncryptCondition> encryptConditions = new EncryptConditionEngine(getEncryptRule(), schema).createEncryptConditions(sqlStatementContext);
         return encryptConditions.isEmpty() ? Collections.emptyList() : generateSQLTokens(encryptConditions);
     }
     

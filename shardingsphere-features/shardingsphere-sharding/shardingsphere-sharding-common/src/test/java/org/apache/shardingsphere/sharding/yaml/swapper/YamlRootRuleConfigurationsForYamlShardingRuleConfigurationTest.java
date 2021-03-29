@@ -17,6 +17,7 @@
 
 package org.apache.shardingsphere.sharding.yaml.swapper;
 
+import org.apache.shardingsphere.infra.config.properties.ConfigurationPropertyKey;
 import org.apache.shardingsphere.sharding.yaml.config.YamlShardingRuleConfiguration;
 import org.apache.shardingsphere.infra.yaml.config.YamlRootRuleConfigurations;
 import org.apache.shardingsphere.infra.yaml.engine.YamlEngine;
@@ -68,16 +69,16 @@ public final class YamlRootRuleConfigurationsForYamlShardingRuleConfigurationTes
     
     private void assertYamlShardingConfiguration(final YamlRootRuleConfigurations actual) {
         assertDataSourceMap(actual);
-        Optional<YamlShardingRuleConfiguration> shardingRuleConfiguration = actual.getRules().stream().filter(
-            each -> each instanceof YamlShardingRuleConfiguration).findFirst().map(configuration -> (YamlShardingRuleConfiguration) configuration);
-        assertTrue(shardingRuleConfiguration.isPresent());
-        assertThat(shardingRuleConfiguration.get().getTables().size(), is(4));
-        assertTUser(shardingRuleConfiguration.get());
-        assertTStock(shardingRuleConfiguration.get());
-        assertTOrder(shardingRuleConfiguration.get());
-        assertTOrderItem(shardingRuleConfiguration.get());
-        assertBindingTable(shardingRuleConfiguration.get());
-        assertBroadcastTable(shardingRuleConfiguration.get());
+        Optional<YamlShardingRuleConfiguration> shardingRuleConfig = actual.getRules().stream().filter(
+            each -> each instanceof YamlShardingRuleConfiguration).findFirst().map(config -> (YamlShardingRuleConfiguration) config);
+        assertTrue(shardingRuleConfig.isPresent());
+        assertThat(shardingRuleConfig.get().getTables().size(), is(4));
+        assertTUser(shardingRuleConfig.get());
+        assertTStock(shardingRuleConfig.get());
+        assertTOrder(shardingRuleConfig.get());
+        assertTOrderItem(shardingRuleConfig.get());
+        assertBindingTable(shardingRuleConfig.get());
+        assertBroadcastTable(shardingRuleConfig.get());
         assertProps(actual);
     }
     
@@ -122,6 +123,6 @@ public final class YamlRootRuleConfigurationsForYamlShardingRuleConfigurationTes
     
     private void assertProps(final YamlRootRuleConfigurations actual) {
         assertThat(actual.getProps().size(), is(1));
-        assertThat(actual.getProps().get("sql.show"), is(true));
+        assertThat(actual.getProps().get(ConfigurationPropertyKey.SQL_SHOW.getKey()), is(true));
     }
 }

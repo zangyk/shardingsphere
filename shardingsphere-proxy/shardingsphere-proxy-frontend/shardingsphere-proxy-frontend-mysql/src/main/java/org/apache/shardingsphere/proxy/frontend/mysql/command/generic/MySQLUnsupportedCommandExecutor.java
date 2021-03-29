@@ -18,14 +18,12 @@
 package org.apache.shardingsphere.proxy.frontend.mysql.command.generic;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.shardingsphere.db.protocol.error.CommonErrorCode;
 import org.apache.shardingsphere.db.protocol.mysql.packet.command.MySQLCommandPacketType;
-import org.apache.shardingsphere.db.protocol.mysql.packet.generic.MySQLErrPacket;
 import org.apache.shardingsphere.db.protocol.packet.DatabasePacket;
-import org.apache.shardingsphere.proxy.frontend.api.CommandExecutor;
+import org.apache.shardingsphere.proxy.frontend.command.executor.CommandExecutor;
+import org.apache.shardingsphere.proxy.frontend.exception.UnsupportedCommandException;
 
 import java.util.Collection;
-import java.util.Collections;
 
 /**
  * Unsupported command packet executor for MySQL.
@@ -36,7 +34,7 @@ public final class MySQLUnsupportedCommandExecutor implements CommandExecutor {
     private final MySQLCommandPacketType type;
     
     @Override
-    public Collection<DatabasePacket> execute() {
-        return Collections.singletonList(new MySQLErrPacket(1, CommonErrorCode.UNSUPPORTED_COMMAND, type));
+    public Collection<DatabasePacket<?>> execute() {
+        throw new UnsupportedCommandException(type.toString());
     }
 }

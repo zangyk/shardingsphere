@@ -20,7 +20,35 @@ package org.apache.shardingsphere.proxy.backend.communication.jdbc.connection;
 /**
  * Connection status.
  */
-public enum ConnectionStatus {
+public final class ConnectionStatus {
     
-    INIT, RUNNING, RELEASE, TRANSACTION, TERMINATED
+    private final ResourceLock resourceLock = new ResourceLock();
+    
+    private volatile boolean isUsing;
+    
+    /**
+     * Switch connection status to using.
+     */
+    public void switchToUsing() {
+        isUsing = true;
+    }
+    
+    /**
+     * Switch connection status to released.
+     */
+    public void switchToReleased() {
+        if (isUsing) {
+            isUsing = false;
+            resourceLock.doNotify();
+        }
+    }
+    
+    /**
+     * Wait until connection release.
+     */
+    public void waitUntilConnectionRelease() {
+        while (isUsing) {
+            resourceLock.doAwait();
+        }
+    }
 }

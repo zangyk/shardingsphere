@@ -18,9 +18,10 @@
 package org.apache.shardingsphere.shadow.rule;
 
 import lombok.Getter;
-import org.apache.shardingsphere.shadow.api.config.ShadowRuleConfiguration;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
+import org.apache.shardingsphere.shadow.api.config.ShadowRuleConfiguration;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -33,8 +34,11 @@ public final class ShadowRule implements ShardingSphereRule {
     
     private final String column;
     
-    public ShadowRule(final ShadowRuleConfiguration shadowRuleConfiguration) {
-        column = shadowRuleConfiguration.getColumn();
-        shadowMappings = shadowRuleConfiguration.getShadowMappings();
+    public ShadowRule(final ShadowRuleConfiguration shadowRuleConfig) {
+        column = shadowRuleConfig.getColumn();
+        shadowMappings = new HashMap<>(shadowRuleConfig.getShadowDataSourceNames().size());
+        for (int i = 0; i < shadowRuleConfig.getSourceDataSourceNames().size(); i++) {
+            shadowMappings.put(shadowRuleConfig.getSourceDataSourceNames().get(i), shadowRuleConfig.getShadowDataSourceNames().get(i));
+        }
     }
 }

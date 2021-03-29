@@ -25,7 +25,7 @@ import org.apache.shardingsphere.infra.rewrite.parameter.builder.ParameterBuilde
 import org.apache.shardingsphere.infra.rewrite.parameter.builder.impl.GroupedParameterBuilder;
 import org.apache.shardingsphere.infra.rewrite.parameter.builder.impl.StandardParameterBuilder;
 import org.apache.shardingsphere.infra.rewrite.sql.impl.RouteSQLBuilder;
-import org.apache.shardingsphere.infra.route.context.RouteResult;
+import org.apache.shardingsphere.infra.route.context.RouteContext;
 import org.apache.shardingsphere.infra.route.context.RouteUnit;
 
 import java.util.Collection;
@@ -43,43 +43,35 @@ public final class RouteSQLRewriteEngine {
      * Rewrite SQL and parameters.
      *
      * @param sqlRewriteContext SQL rewrite context
-     * @param routeResult route result
+     * @param routeContext route context
      * @return SQL rewrite result
      */
-    public RouteSQLRewriteResult rewrite(final SQLRewriteContext sqlRewriteContext, final RouteResult routeResult) {
-        Map<RouteUnit, SQLRewriteUnit> result = new LinkedHashMap<>(routeResult.getRouteUnits().size(), 1);
-        for (RouteUnit each : routeResult.getRouteUnits()) {
-            result.put(each, new SQLRewriteUnit(new RouteSQLBuilder(sqlRewriteContext, each).toSQL(), getParameters(sqlRewriteContext.getParameterBuilder(), routeResult, each)));
+    public RouteSQLRewriteResult rewrite(final SQLRewriteContext sqlRewriteContext, final RouteContext routeContext) {
+        Map<RouteUnit, SQLRewriteUnit> result = new LinkedHashMap<>(routeContext.getRouteUnits().size(), 1);
+        for (RouteUnit each : routeContext.getRouteUnits()) {
+            result.put(each, new SQLRewriteUnit(new RouteSQLBuilder(sqlRewriteContext, each).toSQL(), getParameters(sqlRewriteContext.getParameterBuilder(), routeContext, each)));
         }
         return new RouteSQLRewriteResult(result);
     }
     
-    private List<Object> getParameters(final ParameterBuilder parameterBuilder, final RouteResult routeResult, final RouteUnit routeUnit) {
+    private List<Object> getParameters(final ParameterBuilder parameterBuilder, final RouteContext routeContext, final RouteUnit routeUnit) {
         if (parameterBuilder instanceof StandardParameterBuilder) {
             return parameterBuilder.getParameters();
         }
-        
-        if (routeResult.getOriginalDataNodes().isEmpty()) {
-            List<Object> onDuplicateKeyUpdateParameters = ((GroupedParameterBuilder) parameterBuilder).getOnDuplicateKeyUpdateParametersBuilder().getParameters();
-            if (onDuplicateKeyUpdateParameters.isEmpty()) {
-                return parameterBuilder.getParameters();
-            }
-            
-            List<Object> result = new LinkedList<>();
-            result.addAll(parameterBuilder.getParameters());
-            result.addAll(onDuplicateKeyUpdateParameters);
-            return result;
-        }
+        return routeContext.getOriginalDataNodes().isEmpty()
+                ? ((GroupedParameterBuilder) parameterBuilder).getParameters() : buildRouteParameters((GroupedParameterBuilder) parameterBuilder, routeContext, routeUnit);
+    }
     
+    private List<Object> buildRouteParameters(final GroupedParameterBuilder parameterBuilder, final RouteContext routeContext, final RouteUnit routeUnit) {
         List<Object> result = new LinkedList<>();
         int count = 0;
-        for (Collection<DataNode> each : routeResult.getOriginalDataNodes()) {
+        for (Collection<DataNode> each : routeContext.getOriginalDataNodes()) {
             if (isInSameDataNode(each, routeUnit)) {
-                result.addAll(((GroupedParameterBuilder) parameterBuilder).getParameters(count));
+                result.addAll(parameterBuilder.getParameters(count));
             }
             count++;
         }
-        result.addAll(((GroupedParameterBuilder) parameterBuilder).getOnDuplicateKeyUpdateParametersBuilder().getParameters());
+        result.addAll(parameterBuilder.getGenericParameterBuilder().getParameters());
         return result;
     }
     

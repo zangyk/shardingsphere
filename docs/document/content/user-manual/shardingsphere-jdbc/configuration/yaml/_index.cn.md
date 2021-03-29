@@ -24,13 +24,13 @@ DataSource dataSource = YamlShardingSphereDataSourceFactory.createDataSource(yam
 
 ### 创建携带治理功能的数据源
 
-通过 YamlOrchestrationShardingSphereDataSourceFactory 工厂创建的 OrchestrationShardingSphereDataSource 实现自 JDBC 的标准接口 DataSource。
+通过 YamlGovernanceShardingSphereDataSourceFactory 工厂创建的 GovernanceShardingSphereDataSource 实现自 JDBC 的标准接口 DataSource。
 
 ```java
 // 指定 YAML 文件路径
 File yamlFile = // ...
 
-DataSource dataSource = YamlOrchestrationShardingSphereDataSourceFactory.createDataSource(yamlFile);
+DataSource dataSource = YamlGovernanceShardingSphereDataSourceFactory.createDataSource(yamlFile);
 ```
 
 ### 使用数据源
@@ -94,12 +94,12 @@ dataSource: # <!!数据库连接池实现类> `!!`表示实例化该类
 dataSources:
   ds_0: !!org.apache.commons.dbcp2.BasicDataSource
     driverClassName: org.h2.Driver
-    url: jdbc:h2:mem:ds_m;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;MODE=MYSQL
+    url: jdbc:h2:mem:ds_0;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;MODE=MYSQL
     username: sa
     password:
   ds_1: !!org.apache.commons.dbcp2.BasicDataSource
     driverClassName: org.h2.Driver
-    url: jdbc:h2:mem:ds_s;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;MODE=MYSQL
+    url: jdbc:h2:mem:ds_1;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;MODE=MYSQL
     username: sa
     password:
 ```

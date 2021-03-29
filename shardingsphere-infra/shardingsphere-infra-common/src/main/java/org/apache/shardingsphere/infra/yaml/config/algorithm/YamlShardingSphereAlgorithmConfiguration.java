@@ -17,9 +17,10 @@
 
 package org.apache.shardingsphere.infra.yaml.config.algorithm;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.apache.shardingsphere.infra.spi.type.TypedSPI;
 import org.apache.shardingsphere.infra.yaml.config.YamlConfiguration;
 
 import java.util.Properties;
@@ -27,6 +28,8 @@ import java.util.Properties;
 /**
  * ShardingSphere algorithm configuration for YAML.
  */
+@AllArgsConstructor
+@NoArgsConstructor
 @Getter
 @Setter
 public final class YamlShardingSphereAlgorithmConfiguration implements YamlConfiguration {
@@ -34,17 +37,4 @@ public final class YamlShardingSphereAlgorithmConfiguration implements YamlConfi
     private String type;
     
     private Properties props = new Properties();
-    
-    /**
-     * Build by typed spi.
-     *
-     * @param value typedSPI
-     * @return YAML sharding sphere algorithm configuration
-     */
-    public static YamlShardingSphereAlgorithmConfiguration buildByTypedSPI(final TypedSPI value) {
-        YamlShardingSphereAlgorithmConfiguration result = new YamlShardingSphereAlgorithmConfiguration();
-        result.setType(value.getType());
-        result.setProps(value.getProps());
-        return result;
-    }
 }

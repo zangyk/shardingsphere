@@ -44,7 +44,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
-            <artifactId>shardingsphere-master-slave-spring-boot-starter</artifactId>
+            <artifactId>shardingsphere-read-write-splitting-spring-boot-starter</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -56,6 +56,13 @@
             <groupId>org.apache.shardingsphere</groupId>
             <artifactId>shardingsphere-jdbc-transaction-spring</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.apache.shardingsphere</groupId>
+            <artifactId>shardingsphere-test-common</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
         </dependency>
         
         <dependency>

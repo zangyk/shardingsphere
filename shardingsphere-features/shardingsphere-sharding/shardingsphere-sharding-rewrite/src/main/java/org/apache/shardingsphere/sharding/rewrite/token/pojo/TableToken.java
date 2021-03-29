@@ -25,9 +25,9 @@ import org.apache.shardingsphere.infra.rewrite.sql.token.pojo.Substitutable;
 import org.apache.shardingsphere.infra.route.context.RouteMapper;
 import org.apache.shardingsphere.infra.route.context.RouteUnit;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
-import org.apache.shardingsphere.sql.parser.binder.statement.SQLStatementContext;
-import org.apache.shardingsphere.sql.parser.sql.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.infra.binder.statement.SQLStatementContext;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -52,9 +52,9 @@ public final class TableToken extends SQLToken implements Substitutable, RouteUn
     public TableToken(final int startIndex, final int stopIndex, final SimpleTableSegment tableSegment, final SQLStatementContext sqlStatementContext, final ShardingRule shardingRule) {
         super(startIndex);
         this.stopIndex = stopIndex;
-        this.tableName = tableSegment.getTableName().getIdentifier();
+        tableName = tableSegment.getTableName().getIdentifier();
         this.sqlStatementContext = sqlStatementContext;
-        this.owner = tableSegment.getOwner().isPresent() ? tableSegment.getOwner().get().getIdentifier() : null;
+        owner = tableSegment.getOwner().isPresent() ? tableSegment.getOwner().get().getIdentifier() : null;
         this.shardingRule = shardingRule;
     }
     
@@ -64,9 +64,9 @@ public final class TableToken extends SQLToken implements Substitutable, RouteUn
         actualTableName = null == actualTableName ? tableName.getValue().toLowerCase() : actualTableName;
         String owner = "";
         if (null != this.owner && routeUnit.getDataSourceMapper().getLogicName().equals(this.owner.getValue())) {
-            owner = this.owner.getQuoteCharacter().getStartDelimiter() + routeUnit.getDataSourceMapper().getActualName() + this.owner.getQuoteCharacter().getEndDelimiter() + ".";
+            owner = this.owner.getQuoteCharacter().wrap(routeUnit.getDataSourceMapper().getActualName()) + ".";
         }
-        return Joiner.on("").join(owner, tableName.getQuoteCharacter().getStartDelimiter(), actualTableName, tableName.getQuoteCharacter().getEndDelimiter());
+        return Joiner.on("").join(owner, tableName.getQuoteCharacter().wrap(actualTableName));
     }
     
     private Map<String, String> getLogicAndActualTables(final RouteUnit routeUnit) {

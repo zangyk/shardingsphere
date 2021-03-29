@@ -19,10 +19,9 @@ package org.apache.shardingsphere.sharding.rewrite.token.generator.impl.keygen;
 
 import com.google.common.base.Preconditions;
 import org.apache.shardingsphere.sharding.rewrite.token.pojo.GeneratedKeyInsertColumnToken;
-import org.apache.shardingsphere.sql.parser.binder.segment.insert.keygen.GeneratedKeyContext;
-import org.apache.shardingsphere.sql.parser.binder.statement.dml.InsertStatementContext;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.column.InsertColumnsSegment;
-import org.apache.shardingsphere.sql.parser.sql.statement.dml.InsertStatement;
+import org.apache.shardingsphere.infra.binder.segment.insert.keygen.GeneratedKeyContext;
+import org.apache.shardingsphere.infra.binder.statement.dml.InsertStatementContext;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.column.InsertColumnsSegment;
 
 import java.util.Optional;
 
@@ -32,8 +31,8 @@ import java.util.Optional;
 public final class GeneratedKeyInsertColumnTokenGenerator extends BaseGeneratedKeyTokenGenerator {
     
     @Override
-    protected boolean isGenerateSQLToken(final InsertStatement insertStatement) {
-        Optional<InsertColumnsSegment> sqlSegment = insertStatement.getInsertColumns();
+    protected boolean isGenerateSQLToken(final InsertStatementContext insertStatementContext) {
+        Optional<InsertColumnsSegment> sqlSegment = insertStatementContext.getSqlStatement().getInsertColumns();
         return sqlSegment.isPresent() && !sqlSegment.get().getColumns().isEmpty();
     }
     

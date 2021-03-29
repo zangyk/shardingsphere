@@ -16,7 +16,8 @@
 #
 
 dataSources:
-  ds: !!com.zaxxer.hikari.HikariDataSource
+  ds:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     driverClassName: com.mysql.jdbc.Driver
     jdbcUrl: jdbc:mysql://localhost:3306/demo_ds?serverTimezone=UTC&useSSL=false&useUnicode=true&characterEncoding=UTF-8
     username: root
@@ -52,17 +53,17 @@ rules:
     t_order_inline:
       type: INLINE
       props:
-        algorithm.expression: t_order_${order_id % 2}
+        algorithm-expression: t_order_${order_id % 2}
     t_order_item_inline:
       type: INLINE
       props:
-        algorithm.expression: t_order_item_${order_id % 2}
+        algorithm-expression: t_order_item_${order_id % 2}
   
   keyGenerators:
     snowflake:
       type: SNOWFLAKE
       props:
-          worker.id: 123
+          worker-id: 123
 
 props:
-  sql.show: false
+  sql-show: false

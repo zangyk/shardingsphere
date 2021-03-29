@@ -24,12 +24,12 @@
         <version>5.0.0-RC1-SNAPSHOT</version>
     </parent>
     <artifactId>shardingsphere-jdbc</artifactId>
-    <name>${project.artifactId}</name>
     <packaging>pom</packaging>
+    <name>${project.artifactId}</name>
     
     <modules>
         <module>shardingsphere-jdbc-core</module>
-        <module>shardingsphere-jdbc-orchestration</module>
+        <module>shardingsphere-jdbc-governance</module>
         <module>shardingsphere-jdbc-spring</module>
     </modules>
 </project>

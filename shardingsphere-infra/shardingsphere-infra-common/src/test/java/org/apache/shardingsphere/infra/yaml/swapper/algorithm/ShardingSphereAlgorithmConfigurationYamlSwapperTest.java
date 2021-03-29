@@ -38,10 +38,8 @@ public final class ShardingSphereAlgorithmConfigurationYamlSwapperTest {
     
     @Test
     public void assertSwapToObject() {
-        YamlShardingSphereAlgorithmConfiguration yamlConfiguration = new YamlShardingSphereAlgorithmConfiguration();
-        yamlConfiguration.setType("TEST");
-        yamlConfiguration.setProps(createProps());
-        ShardingSphereAlgorithmConfiguration actual = new ShardingSphereAlgorithmConfigurationYamlSwapper().swapToObject(yamlConfiguration);
+        YamlShardingSphereAlgorithmConfiguration yamlConfig = new YamlShardingSphereAlgorithmConfiguration("TEST", createProps());
+        ShardingSphereAlgorithmConfiguration actual = new ShardingSphereAlgorithmConfigurationYamlSwapper().swapToObject(yamlConfig);
         assertThat(actual.getType(), is("TEST"));
         assertThat(actual.getProps().getProperty("key"), is("value"));
     }

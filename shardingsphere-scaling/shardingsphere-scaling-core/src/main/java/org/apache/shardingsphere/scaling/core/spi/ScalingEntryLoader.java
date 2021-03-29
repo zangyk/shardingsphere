@@ -17,35 +17,39 @@
 
 package org.apache.shardingsphere.scaling.core.spi;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.apache.shardingsphere.infra.spi.ShardingSphereServiceLoader;
+
 import java.util.Map;
 import java.util.TreeMap;
 
 /**
  * Scaling entry loader.
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ScalingEntryLoader {
     
     private static final Map<String, ScalingEntry> SCALING_ENTRY_MAP = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
     
     static {
         ShardingSphereServiceLoader.register(ScalingEntry.class);
-        for (ScalingEntry each : ShardingSphereServiceLoader.newServiceInstances(ScalingEntry.class)) {
+        for (ScalingEntry each : ShardingSphereServiceLoader.getSingletonServiceInstances(ScalingEntry.class)) {
             SCALING_ENTRY_MAP.put(each.getDatabaseType(), each);
         }
     }
     
     /**
-     * Get {@code ScalingEntry} by database type string.
+     * Get {@code ScalingEntry} by database type.
      * If not found, throw {@code UnsupportedOperationException}
      *
-     * @param databaseType database type string
-     * @return scaling entry for target database type
+     * @param databaseType database type
+     * @return scaling entry
      */
-    public static ScalingEntry getScalingEntryByDatabaseType(final String databaseType) {
-        if (!SCALING_ENTRY_MAP.containsKey(databaseType)) {
-            throw new UnsupportedOperationException(String.format("Cannot support database type '%s'", databaseType));
+    public static ScalingEntry getInstance(final String databaseType) {
+        if (SCALING_ENTRY_MAP.containsKey(databaseType)) {
+            return SCALING_ENTRY_MAP.get(databaseType);
         }
-        return SCALING_ENTRY_MAP.get(databaseType);
+        throw new UnsupportedOperationException(String.format("Unsupported database type '%s'", databaseType));
     }
 }

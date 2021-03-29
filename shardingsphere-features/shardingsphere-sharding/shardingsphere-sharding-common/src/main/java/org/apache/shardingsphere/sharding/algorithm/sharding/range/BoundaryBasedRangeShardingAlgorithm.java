@@ -23,6 +23,9 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Range;
 import com.google.common.primitives.Longs;
 import org.apache.commons.collections4.CollectionUtils;
+
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -34,7 +37,7 @@ import java.util.stream.Collectors;
  */
 public final class BoundaryBasedRangeShardingAlgorithm extends AbstractRangeShardingAlgorithm {
     
-    private static final String SHARDING_RANGES_KEY = "sharding.ranges";
+    private static final String SHARDING_RANGES_KEY = "sharding-ranges";
     
     @Override
     public Map<Integer, Range<Long>> calculatePartitionRange(final Properties props) {
@@ -46,7 +49,7 @@ public final class BoundaryBasedRangeShardingAlgorithm extends AbstractRangeShar
         for (int i = 0; i < partitionRanges.size(); i++) {
             Long rangeValue = partitionRanges.get(i);
             if (i == 0) {
-                result.put(i, Range.lessThan(rangeValue));
+                result.put(0, Range.lessThan(rangeValue));
             } else {
                 Long previousRangeValue = partitionRanges.get(i - 1);
                 result.put(i, Range.closedOpen(previousRangeValue, rangeValue));
@@ -61,5 +64,10 @@ public final class BoundaryBasedRangeShardingAlgorithm extends AbstractRangeShar
     @Override
     public String getType() {
         return "BOUNDARY_RANGE";
+    }
+    
+    @Override
+    public Collection<String> getAllPropertyKeys() {
+        return Collections.singletonList(SHARDING_RANGES_KEY);
     }
 }

@@ -20,15 +20,14 @@ package org.apache.shardingsphere.proxy.frontend.mysql.auth;
 import com.google.common.base.Strings;
 import lombok.Getter;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.shardingsphere.db.protocol.mysql.constant.MySQLServerErrorCode;
 import org.apache.shardingsphere.db.protocol.mysql.packet.handshake.MySQLAuthPluginData;
-import org.apache.shardingsphere.infra.auth.ProxyUser;
-import org.apache.shardingsphere.proxy.backend.schema.ProxySchemaContexts;
+import org.apache.shardingsphere.infra.metadata.auth.model.privilege.ShardingSpherePrivilege;
+import org.apache.shardingsphere.infra.metadata.auth.model.user.Grantee;
+import org.apache.shardingsphere.infra.metadata.auth.model.user.ShardingSphereUser;
+import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map.Entry;
 import java.util.Optional;
 
 /**
@@ -37,44 +36,30 @@ import java.util.Optional;
 @Getter
 public final class MySQLAuthenticationHandler {
     
-    private static final ProxySchemaContexts PROXY_SCHEMA_CONTEXTS = ProxySchemaContexts.getInstance();
+    private static final ProxyContext PROXY_SCHEMA_CONTEXTS = ProxyContext.getInstance();
     
     private final MySQLAuthPluginData authPluginData = new MySQLAuthPluginData();
     
     /**
      * Login.
      *
-     * @param userName user name.
+     * @param username username
+     * @param hostname hostname
      * @param authResponse auth response
-     * @param database database
+     * @param databaseName database name
      * @return login success or failure
      */
-    public Optional<MySQLServerErrorCode> login(final String userName, final byte[] authResponse, final String database) {
-        Optional<ProxyUser> user = getUser(userName);
+    public Optional<MySQLServerErrorCode> login(final String username, final String hostname, final byte[] authResponse, final String databaseName) {
+        Optional<ShardingSphereUser> user = ProxyContext.getInstance().getMetaDataContexts().getAuthentication().findUser(new Grantee(username, hostname));
         if (!user.isPresent() || !isPasswordRight(user.get().getPassword(), authResponse)) {
             return Optional.of(MySQLServerErrorCode.ER_ACCESS_DENIED_ERROR);
         }
-        if (!isAuthorizedSchema(user.get().getAuthorizedSchemas(), database)) {
-            return Optional.of(MySQLServerErrorCode.ER_DBACCESS_DENIED_ERROR);
-        }
-        return Optional.empty();
-    }
-    
-    private Optional<ProxyUser> getUser(final String username) {
-        for (Entry<String, ProxyUser> entry : PROXY_SCHEMA_CONTEXTS.getSchemaContexts().getAuthentication().getUsers().entrySet()) {
-            if (entry.getKey().equals(username)) {
-                return Optional.of(entry.getValue());
-            }
-        }
-        return Optional.empty();
+        Optional<ShardingSpherePrivilege> privilege = ProxyContext.getInstance().getMetaDataContexts().getAuthentication().findPrivilege(user.get().getGrantee());
+        return privilege.isPresent() && privilege.get().hasPrivileges(databaseName) ? Optional.empty() : Optional.of(MySQLServerErrorCode.ER_DBACCESS_DENIED_ERROR);
     }
     
     private boolean isPasswordRight(final String password, final byte[] authResponse) {
         return Strings.isNullOrEmpty(password) || Arrays.equals(getAuthCipherBytes(password), authResponse);
-    }
-    
-    private boolean isAuthorizedSchema(final Collection<String> authorizedSchemas, final String schema) {
-        return Strings.isNullOrEmpty(schema) || CollectionUtils.isEmpty(authorizedSchemas) || authorizedSchemas.contains(schema);
     }
     
     private byte[] getAuthCipherBytes(final String password) {
@@ -88,7 +73,7 @@ public final class MySQLAuthenticationHandler {
     }
     
     private byte[] xor(final byte[] input, final byte[] secret) {
-        final byte[] result = new byte[input.length];
+        byte[] result = new byte[input.length];
         for (int i = 0; i < input.length; ++i) {
             result[i] = (byte) (input[i] ^ secret[i]);
         }

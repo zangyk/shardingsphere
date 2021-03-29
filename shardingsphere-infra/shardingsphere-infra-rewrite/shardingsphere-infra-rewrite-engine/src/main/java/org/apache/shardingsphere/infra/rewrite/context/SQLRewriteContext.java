@@ -26,9 +26,9 @@ import org.apache.shardingsphere.infra.rewrite.sql.token.generator.SQLTokenGener
 import org.apache.shardingsphere.infra.rewrite.sql.token.generator.SQLTokenGenerators;
 import org.apache.shardingsphere.infra.rewrite.sql.token.generator.builder.DefaultTokenGeneratorBuilder;
 import org.apache.shardingsphere.infra.rewrite.sql.token.pojo.SQLToken;
-import org.apache.shardingsphere.sql.parser.binder.metadata.schema.SchemaMetaData;
-import org.apache.shardingsphere.sql.parser.binder.statement.SQLStatementContext;
-import org.apache.shardingsphere.sql.parser.binder.statement.dml.InsertStatementContext;
+import org.apache.shardingsphere.infra.metadata.schema.ShardingSphereSchema;
+import org.apache.shardingsphere.infra.binder.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.binder.statement.dml.InsertStatementContext;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -40,9 +40,9 @@ import java.util.List;
 @Getter
 public final class SQLRewriteContext {
     
-    private final SchemaMetaData schemaMetaData;
+    private final ShardingSphereSchema schema;
     
-    private final SQLStatementContext sqlStatementContext;
+    private final SQLStatementContext<?> sqlStatementContext;
     
     private final String sql;
     
@@ -55,14 +55,15 @@ public final class SQLRewriteContext {
     @Getter(AccessLevel.NONE)
     private final SQLTokenGenerators sqlTokenGenerators = new SQLTokenGenerators();
     
-    public SQLRewriteContext(final SchemaMetaData schemaMetaData, final SQLStatementContext sqlStatementContext, final String sql, final List<Object> parameters) {
-        this.schemaMetaData = schemaMetaData;
+    public SQLRewriteContext(final ShardingSphereSchema schema, final SQLStatementContext<?> sqlStatementContext, final String sql, final List<Object> parameters) {
+        this.schema = schema;
         this.sqlStatementContext = sqlStatementContext;
         this.sql = sql;
         this.parameters = parameters;
         addSQLTokenGenerators(new DefaultTokenGeneratorBuilder().getSQLTokenGenerators());
         parameterBuilder = sqlStatementContext instanceof InsertStatementContext
-                ? new GroupedParameterBuilder(((InsertStatementContext) sqlStatementContext).getGroupedParameters(), ((InsertStatementContext) sqlStatementContext).getOnDuplicateKeyUpdateParameters())
+                ? new GroupedParameterBuilder(
+                        ((InsertStatementContext) sqlStatementContext).getGroupedParameters(), ((InsertStatementContext) sqlStatementContext).getOnDuplicateKeyUpdateParameters())
                 : new StandardParameterBuilder(parameters);
     }
     
@@ -79,6 +80,6 @@ public final class SQLRewriteContext {
      * Generate SQL tokens.
      */
     public void generateSQLTokens() {
-        sqlTokens.addAll(sqlTokenGenerators.generateSQLTokens(sqlStatementContext, parameters, schemaMetaData));
+        sqlTokens.addAll(sqlTokenGenerators.generateSQLTokens(sqlStatementContext, parameters, schema));
     }
 }

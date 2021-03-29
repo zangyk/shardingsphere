@@ -18,6 +18,7 @@
 package org.apache.shardingsphere.driver.jdbc.adapter;
 
 import com.google.common.io.CharStreams;
+import java.sql.Array;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import org.apache.shardingsphere.driver.jdbc.adapter.invocation.SetParameterMethodInvocation;
@@ -172,6 +173,11 @@ public abstract class AbstractPreparedStatementAdapter extends AbstractUnsupport
     }
     
     @Override
+    public void setArray(final int parameterIndex, final Array x) {
+        setParameter(parameterIndex, x);
+    }
+    
+    @Override
     public final void setAsciiStream(final int parameterIndex, final InputStream x) {
         setParameter(parameterIndex, x);
     }
@@ -283,7 +289,7 @@ public abstract class AbstractPreparedStatementAdapter extends AbstractUnsupport
     }
     
     @SneakyThrows(ReflectiveOperationException.class)
-    private void setParameters(final Class[] argumentTypes, final Object... arguments) {
+    private void setParameters(final Class<?>[] argumentTypes, final Object... arguments) {
         setParameterMethodInvocations.add(new SetParameterMethodInvocation(PreparedStatement.class.getMethod("setObject", argumentTypes), arguments, arguments[1]));
     }
     

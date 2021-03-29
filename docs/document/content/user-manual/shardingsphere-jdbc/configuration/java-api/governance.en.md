@@ -1,6 +1,6 @@
 +++
 title = "Governance"
-weight = 6
+weight = 5
 +++
 
 ## Configuration Item Explanation
@@ -9,36 +9,29 @@ weight = 6
 
 *Configuration Entrance*
 
-Class name: org.apache.shardingsphere.orchestration.repository.api.config.OrchestrationConfiguration
+Class name: org.apache.shardingsphere.governance.repository.api.config.GovernanceConfiguration
 
 Attributes:
 
 | *Name*                              | *Data Type*                         | *Description*                                                                                                       |
 | ----------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| registryCenterConfiguration         | Map\<String, CenterConfiguration\>  | Config map of registry-center, the key is orchestration name, the value is the orchestration instance |
-| additionalConfigCenterConfiguration | Map\<String, CenterConfiguration\>  | Config additional map of config-center, the key is orchestration name, the value is the orchestration instance |
+| name         | String  | Governance instance name |
+| registryCenterConfiguration         | GovernanceCenterConfiguration  | Config of registry-center |
 
 The type of registryCenter could be Zookeeper or etcd.
-The type of additional ConfigCenter could be Zookeeper or etcd, Apollo, Nacos.
 
-*Orchestration Instance Configuration*
+*Governance Instance Configuration*
 
-Class name: org.apache.shardingsphere.orchestration.repository.api.config.OrchestrationCenterConfiguration
+Class name: org.apache.shardingsphere.governance.repository.api.config.GovernanceCenterConfiguration
 
 Attributes:
 
 | *Name*        | *Data Type* | *Description*                                                                                                                                    |
 | ------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| type          | String      | Orchestration instance type, such as: Zookeeper, etcd, Apollo, Nacos                                                                             |
-| serverLists   | String      | The list of servers that connect to orchestration instance, including IP and port number, use commas to separate, such as: host1:2181,host2:2181 |
-| namespace (?) | String      | Orchestration namespace                                                                                                                          |
+| type          | String      | Governance instance type, such as: Zookeeper, etcd                                                                             |
+| serverLists   | String      | The list of servers that connect to governance instance, including IP and port number, use commas to separate, such as: host1:2181,host2:2181 |                                                                                                                    |
 | props         | Properties  | Properties for center instance config, such as options of zookeeper                                                                              |
-
-Common Properties Configuration
-
-| *Name*          | *Data Type* | *Description*                                                                                                                             | *Default Value* |
-| --------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
-| overwrite       | boolean     | Local configurations overwrite config center configurations or not; if they overwrite, each start takes reference of local configurations | false           |
+| overwrite       | boolean     | Local configurations overwrite config center configurations or not; if they overwrite, each start takes reference of local configurations | 
 
 ZooKeeper Properties Configuration
 
@@ -56,50 +49,3 @@ Etcd Properties Configuration
 | *Name*                | *Data Type* | *Description*                         | *Default Value* |
 | --------------------- | ----------- | ------------------------------------- | --------------- |
 | timeToLiveSeconds (?) | long        | Time to live seconds for data persist | 30 seconds      |
-
-Apollo Properties Configuration
-
-| *Name*             | *Data Type* | *Description*                | *Default Value*       |
-| ------------------ | ----------- | ---------------------------- | --------------------- |
-| appId (?)          | String      | Apollo appId                 | APOLLO_SHARDINGSPHERE |
-| env (?)            | String      | Apollo env                   | DEV                   |
-| clusterName (?)    | String      | Apollo clusterName           | default               |
-| administrator (?)  | String      | Apollo administrator         | Empty                 |
-| token (?)          | String      | Apollo token                 | Empty                 |
-| portalUrl (?)      | String      | Apollo portalUrl             | Empty                 |
-| connectTimeout (?) | int         | Connect timeout milliseconds | 1000 milliseconds     |
-| readTimeout (?)    | int         | Read timeout milliseconds    | 5000 milliseconds     |
-
-Nacos Properties Configuration
-
-| *Name*      | *Data Type* | *Description* | *Default Value*               |
-| ----------- | ----------- | ------------- | ----------------------------- |
-| group (?)   | String      | group         | SHARDING_SPHERE_DEFAULT_GROUP |
-| timeout (?) | long        | timeout       | 3000 milliseconds             |
-
-### Cluster
-
-*Configuration Entrance*
-
-Class name：org.apache.shardingsphere.cluster.configuration.config.ClusterConfiguration
-
-Attributes：
-
-| *Name*    | *Data Type*             | *Description*                     |
-| --------- | ----------------------- | --------------------------------- |
-| heartbeat | HeartbeatConfiguration  | heartbeat detection configuration |
-
-*Heartbeat Detection Configuration*
-
-Class name：org.apache.shardingsphere.cluster.configuration.config.HeartbeatConfiguration
-
-Attributes：
-
-| *Name*           | *Data Type* | *Description*                                               |
-| ---------------- | ----------- | ----------------------------------------------------------- |
-| sql              | String      | Heartbeat detection SQL                                     |
-| interval         | int         | Heartbeat detection task interval seconds                   |
-| threadCount      | int         | Thread pool size                                            |
-| retryEnable      | Boolean     | Whether to enable retry, set true or false                  |
-| retryMaximum(?)  | int         | Maximum number of retry, effective when retryEnable is true |
-| retryInterval(?) | int         | Retry interval (s), effective when retryEnable is true      |

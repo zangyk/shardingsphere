@@ -26,6 +26,7 @@ import org.apache.shardingsphere.sharding.api.sharding.standard.RangeShardingVal
 import org.apache.shardingsphere.sharding.api.sharding.standard.StandardShardingAlgorithm;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Properties;
 
@@ -36,7 +37,7 @@ import java.util.Properties;
 @Setter
 public final class ModShardingAlgorithm implements StandardShardingAlgorithm<Comparable<?>>, ShardingAutoTableAlgorithm {
     
-    private static final String SHARDING_COUNT_KEY = "sharding.count";
+    private static final String SHARDING_COUNT_KEY = "sharding-count";
     
     private Properties props = new Properties();
     
@@ -55,7 +56,7 @@ public final class ModShardingAlgorithm implements StandardShardingAlgorithm<Com
     @Override
     public String doSharding(final Collection<String> availableTargetNames, final PreciseShardingValue<Comparable<?>> shardingValue) {
         for (String each : availableTargetNames) {
-            if (each.endsWith(getLongValue(shardingValue.getValue()) % shardingCount + "")) {
+            if (each.endsWith(String.valueOf(getLongValue(shardingValue.getValue()) % shardingCount))) {
                 return each;
             }
         }
@@ -76,7 +77,7 @@ public final class ModShardingAlgorithm implements StandardShardingAlgorithm<Com
         Collection<String> result = new LinkedHashSet<>(availableTargetNames.size());
         for (long i = getLongValue(shardingValue.getValueRange().lowerEndpoint()); i <= getLongValue(shardingValue.getValueRange().upperEndpoint()); i++) {
             for (String each : availableTargetNames) {
-                if (each.endsWith(i % shardingCount + "")) {
+                if (each.endsWith(String.valueOf(i % shardingCount))) {
                     result.add(each);
                 }
             }
@@ -96,5 +97,10 @@ public final class ModShardingAlgorithm implements StandardShardingAlgorithm<Com
     @Override
     public String getType() {
         return "MOD";
+    }
+    
+    @Override
+    public Collection<String> getAllPropertyKeys() {
+        return Collections.singletonList(SHARDING_COUNT_KEY);
     }
 }

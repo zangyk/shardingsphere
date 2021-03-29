@@ -1,6 +1,6 @@
 +++
 title = "ElasticJob-UI发布指南"
-weight = 9
+weight = 10
 chapter = true
 +++
 
@@ -10,7 +10,7 @@ chapter = true
 
 ## 发布Apache Maven中央仓库
 
-### 设置settings.xml文件
+**1. 设置settings.xml文件**
 
 将以下模板添加到 `~/.m2/settings.xml`中，所有密码需要加密后再填入。
 加密设置可参考[这里](http://maven.apache.org/guides/mini/guide-encryption.html)。
@@ -32,27 +32,27 @@ chapter = true
 </settings>
 ```
 
-### 更新版本说明
+**2. 更新版本说明**
 
 ```
 https://github.com/apache/shardingsphere-elasticjob-ui/blob/master/RELEASE-NOTES.md
 ```
 
-### 创建发布分支
+**3. 创建发布分支**
 
 假设从github下载的ElasticJob-UI源代码在`~/elasticjob-ui/`目录；假设即将发布的版本为`${RELEASE.VERSION}`。
-创建`${RELEASE.VERSION}-release-ui`分支，接下来的操作都在该分支进行。
+创建`${RELEASE.VERSION}-release`分支，接下来的操作都在该分支进行。
 
 ```shell
 ## ${name}为源码所在分支，如：master，dev-4.x
 git clone --branch ${name} https://github.com/apache/shardingsphere-elasticjob-ui.git ~/elasticjob-ui
 cd ~/elasticjob-ui/
 git pull
-git checkout -b ${RELEASE.VERSION}-release-ui
-git push origin ${RELEASE.VERSION}-release-ui
+git checkout -b ${RELEASE.VERSION}-release
+git push origin ${RELEASE.VERSION}-release
 ```
 
-### 发布预校验
+**4. 发布预校验**
 
 ```shell
 cd ~/elasticjob-ui
@@ -65,7 +65,7 @@ mvn release:prepare -Prelease -Darguments="-DskipTests" -DautoVersionSubmodules=
 
 -DdryRun=true：演练，即不产生版本号提交，不生成新的tag。
 
-### 准备发布
+**5. 准备发布**
 
 首先清理发布预校验本地信息。
 
@@ -88,11 +88,11 @@ mvn release:prepare -Prelease -Darguments="-DskipTests" -DautoVersionSubmodules=
 将本地文件检查无误后，提交至github。
 
 ```shell
-git push
+git push origin ${RELEASE.VERSION}-release
 git push origin --tags
 ```
 
-### 部署发布
+**6. 部署发布**
 
 ```shell
 cd ~/elasticjob-ui
@@ -101,7 +101,7 @@ mvn release:perform -Prelease -Darguments="-DskipTests" -DautoVersionSubmodules=
 
 ## 发布Apache SVN仓库
 
-### 检出shardingsphere发布目录
+**1. 检出shardingsphere发布目录**
 
 如无本地工作目录，则先创建本地工作目录。
 
@@ -117,7 +117,7 @@ svn --username=${APACHE LDAP 用户名} co https://dist.apache.org/repos/dist/de
 cd ~/ss_svn/dev/shardingsphere
 ```
 
-### 添加gpg公钥
+**2. 添加gpg公钥**
 
 仅第一次部署的账号需要添加，只要`KEYS`中包含已经部署过的账户的公钥即可。
 
@@ -125,7 +125,7 @@ cd ~/ss_svn/dev/shardingsphere
 gpg -a --export ${GPG用户名} >> KEYS
 ```
 
-### 将待发布的内容添加至SVN目录
+**3. 将待发布的内容添加至SVN目录**
 
 创建版本号目录。
 
@@ -145,15 +145,15 @@ cp -f ~/elasticjob-ui/shardingsphere-elasticjob-ui-distribution/shardingsphere-e
 cp -f ~/elasticjob-ui/shardingsphere-elasticjob-ui-distribution/shardingsphere-elasticjob-cloud-ui-bin-distribution/target/*.tar.gz.asc ~/ss_svn/dev/shardingsphere/elasticjob-ui-${RELEASE.VERSION}
 ```
 
-### 生成文件签名
+**4. 生成文件签名**
 
 ```shell
-shasum -a 512 apache-shardingsphere-elasticjob-${RELEASE.VERSION}-ui-src.zip >> apache-shardingsphere-elasticjob-${RELEASE.VERSION}-ui-src.zip.sha512
-shasum -b -a 512 apache-shardingsphere-elasticjob-${RELEASE.VERSION}-lite-ui-bin.tar.gz >> apache-shardingsphere-elasticjob-${RELEASE.VERSION}-lite-ui-bin.tar.gz.sha512
-shasum -b -a 512 apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-ui-bin.tar.gz >> apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-ui-bin.tar.gz.sha512
+shasum -a 512 apache-shardingsphere-elasticjob-${RELEASE.VERSION}-ui-src.zip > apache-shardingsphere-elasticjob-${RELEASE.VERSION}-ui-src.zip.sha512
+shasum -b -a 512 apache-shardingsphere-elasticjob-${RELEASE.VERSION}-lite-ui-bin.tar.gz > apache-shardingsphere-elasticjob-${RELEASE.VERSION}-lite-ui-bin.tar.gz.sha512
+shasum -b -a 512 apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-ui-bin.tar.gz > apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-ui-bin.tar.gz.sha512
 ```
 
-### 提交Apache SVN
+**5. 提交Apache SVN**
 
 ```shell
 cd ~/ss_svn/dev/shardingsphere/
@@ -162,7 +162,7 @@ svn --username=${APACHE LDAP 用户名} commit -m "release elasticjob-ui-${RELEA
 ```
 ## 检查发布结果
 
-### 检查sha512哈希
+**检查sha512哈希**
 
 ```shell
 shasum -c apache-shardingsphere-elasticjob-${RELEASE.VERSION}-ui-src.zip.sha512
@@ -170,7 +170,7 @@ shasum -c apache-shardingsphere-elasticjob-${RELEASE.VERSION}-lite-ui-bin.tar.gz
 shasum -c apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-ui-bin.tar.gz.sha512
 ```
 
-### 检查gpg签名
+**检查gpg签名**
 
 首先导入发布人公钥。从svn仓库导入KEYS到本地环境。（发布版本的人不需要再导入，帮助做验证的人需要导入，用户名填发版人的即可）
 
@@ -202,19 +202,18 @@ gpg --verify apache-shardingsphere-elasticjob-${RELEASE.VERSION}-ui-src.zip.asc 
 gpg --verify apache-shardingsphere-elasticjob-${RELEASE.VERSION}-lite-ui-bin.tar.gz.asc apache-shardingsphere-elasticjob-${RELEASE.VERSION}-lite-ui-bin.tar.gz
 gpg --verify apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-ui-bin.tar.gz.asc apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-ui-bin.tar.gz
 ```
+**检查发布文件内容**
 
-### 检查发布文件内容
-
-#### 对比源码包与Github上tag的内容差异
+**对比源码包与Github上tag的内容差异**
 
 ```
-curl -Lo tag-elasticjob-ui-${RELEASE.VERSION}.zip https://github.com/apache/shardingsphere-elasticjob-ui/archive/shardingsphere-elasticjob-ui-${RELEASE.VERSION}.zip
-unzip tag-elasticjob-ui-${RELEASE.VERSION}.zip
+curl -Lo tag-${RELEASE.VERSION}.zip https://github.com/apache/shardingsphere-elasticjob-ui/archive/${RELEASE.VERSION}.zip
+unzip tag-${RELEASE.VERSION}.zip
 unzip apache-shardingsphere-elasticjob-${RELEASE.VERSION}-ui-src.zip
-diff -r apache-shardingsphere-elasticjob-${RELEASE.VERSION}-ui-src/ shardingsphere-elasticjob-ui-${RELEASE.VERSION}/
+diff -r apache-shardingsphere-elasticjob-${RELEASE.VERSION}-ui-src shardingsphere-elasticjob-ui-${RELEASE.VERSION}
 ```
 
-#### 检查源码包的文件内容
+**检查源码包的文件内容**
 
 - 检查源码包是否包含由于包含不必要文件，致使tarball过于庞大
 - 存在`LICENSE`和`NOTICE`文件
@@ -224,7 +223,7 @@ diff -r apache-shardingsphere-elasticjob-${RELEASE.VERSION}-ui-src/ shardingsphe
 - 能够正确编译，单元测试可以通过 (./mvnw install)
 - 检查是否有多余文件或文件夹，例如空文件夹等
 
-#### 检查二进制包的文件内容
+**检查二进制包的文件内容**
 
 解压缩`apache-shardingsphere-elasticjob-${RELEASE.VERSION}-lite-ui-bin.tar.gz`和`apache-shardingsphere-elasticjob-${RELEASE.VERSION}-cloud-ui-bin.tar.gz`
 进行如下检查:
@@ -240,21 +239,21 @@ diff -r apache-shardingsphere-elasticjob-${RELEASE.VERSION}-ui-src/ shardingsphe
 
 ## 发起投票
 
-### 投票阶段
+**投票阶段**
 
 1. ShardingSphere社区投票，发起投票邮件到`dev@shardingsphere.apache.org`。PMC需要先按照文档检查版本的正确性，然后再进行投票。
 经过至少72小时并统计到3个`+1 PMC member`票后，即可进入下一阶段的投票。
 
 2. 宣布投票结果,发起投票结果邮件到`dev@shardingsphere.apache.org`。
 
-### 投票模板
+**投票模板**
 
 1. ShardingSphere社区投票模板
 
 标题：
 
 ```
-[VOTE] Release Apache ElasticJob UI ${RELEASE.VERSION}
+[VOTE] Release Apache ShardingSphere ElasticJob UI ${RELEASE.VERSION}
 ```
 
 正文：
@@ -271,7 +270,7 @@ The release candidates:
 https://dist.apache.org/repos/dist/dev/shardingsphere/elasticjob-ui-${RELEASE.VERSION}/
 
 Git tag for the release:
-https://github.com/apache/shardingsphere-elasticjob-ui/tree/elasticjob-ui-${RELEASE.VERSION}/
+https://github.com/apache/shardingsphere-elasticjob-ui/tree/${RELEASE.VERSION}/
 
 Release Commit ID:
 https://github.com/apache/shardingsphere-elasticjob-ui/commit/xxxxxxxxxxxxxxxxxxxxxxx
@@ -314,29 +313,6 @@ Checklist for reference:
 
 2. 宣布投票结果模板：
 
-正文：
-
-```
-The vote to release Apache ShardingSphere ElasticJob UI ${RELEASE.VERSION} has passed.
-
-7 PMC member +1 binding votes:
-
-xxx
-xxx
-xxx
-xxx
-xxx
-xxx
-xxx
-
-1 community +1 non-binding vote:
-xxx
-
-Thank you everyone for taking the time to review the release and help us. 
-```
-
-3. 宣布投票结果模板：
-
 标题：
 
 ```
@@ -360,7 +336,7 @@ I will process to publish the release and send ANNOUNCE.
 
 ## 完成发布
 
-### 将源码、二进制包以及KEYS从svn的dev目录移动到release目录
+**1. 将源码、二进制包以及KEYS从svn的dev目录移动到release目录**
 
 ```shell
 svn mv https://dist.apache.org/repos/dist/dev/shardingsphere/elasticjob-ui-${RELEASE.VERSION} https://dist.apache.org/repos/dist/release/shardingsphere/ -m "transfer packages for elasticjob-ui-${RELEASE.VERSION}"
@@ -368,16 +344,93 @@ svn delete https://dist.apache.org/repos/dist/release/shardingsphere/KEYS -m "de
 svn cp https://dist.apache.org/repos/dist/dev/shardingsphere/KEYS https://dist.apache.org/repos/dist/release/shardingsphere/ -m "transfer KEYS for elasticjob-ui-${RELEASE.VERSION}"
 ```
 
-### 合并Github的release分支到`master`, 合并完成后删除release分支
+**2. 合并Github的release分支到`master`, 合并完成后删除release分支**
 
 ```shell
 git checkout master
-git merge origin/${RELEASE.VERSION}-release-ui
-git push
-git push --delete origin ${RELEASE.VERSION}-release-ui
+git merge origin/${RELEASE.VERSION}-release
+git pull
+git push origin master
+git push --delete origin ${RELEASE.VERSION}-release
+git branch -d ${RELEASE.VERSION}-release
 ```
 
-### 更新下载页面
+**3. 发布 Docker (cloud-ui)**
+
+3.1 准备工作
+
+本地安装 Docker，并启动服务。
+
+3.2 编译 Docker 镜像
+
+```shell
+git checkout ${RELEASE.VERSION}
+cd ~/elasticjob-ui/shardingsphere-elasticjob-ui-distribution/shardingsphere-elasticjob-cloud-ui-bin-distribution/
+mvn clean package -Prelease,docker
+```
+
+3.3 给本地 Docker 镜像打标记
+
+通过`docker images`查看到IMAGE ID，例如为：e9ea51023687
+
+```shell
+docker tag e9ea51023687 apache/shardingsphere-elasticjob-cloud-ui:latest
+docker tag e9ea51023687 apache/shardingsphere-elasticjob-cloud-ui:${RELEASE.VERSION}
+```
+
+3.4 发布Docker镜像
+
+```shell
+docker push apache/shardingsphere-elasticjob-cloud-ui:latest
+docker push apache/shardingsphere-elasticjob-cloud-ui:${RELEASE_VERSION}
+```
+
+3.5 确认发布成功
+
+登录 [Docker Hub](https://hub.docker.com/r/apache/shardingsphere-elasticjob-cloud-ui/) 查看是否有发布的镜像
+
+**4. 发布 Docker (lite-ui)**
+
+4.1 准备工作
+
+本地安装 Docker，并启动服务。
+
+4.2 编译 Docker 镜像
+
+```shell
+cd ~/elasticjob-ui/shardingsphere-elasticjob-ui-distribution/shardingsphere-elasticjob-lite-ui-bin-distribution/
+mvn clean package -Prelease,docker
+```
+
+4.3 给本地 Docker 镜像打标记
+
+通过`docker images`查看到IMAGE ID，例如为：e9ea51023687
+
+```shell
+docker tag e9ea51023687 apache/shardingsphere-elasticjob-lite-ui:latest
+docker tag e9ea51023687 apache/shardingsphere-elasticjob-lite-ui:${RELEASE.VERSION}
+```
+
+4.4 发布Docker镜像
+
+```shell
+docker push apache/shardingsphere-elasticjob-lite-ui:latest
+docker push apache/shardingsphere-elasticjob-lite-ui:${RELEASE_VERSION}
+```
+
+4.5 确认发布成功
+
+登录 [Docker Hub](https://hub.docker.com/r/apache/shardingsphere-elasticjob-lite-ui/) 查看是否有发布的镜像
+
+**5. GitHub 版本发布**
+
+在 [GitHub Releases](https://github.com/apache/shardingsphere-elasticjob-ui/releases) 页面的 `shardingsphere-elasticjob-ui-${RELEASE_VERSION}` 版本上点击 `Edit`
+
+编辑版本号及版本说明，并点击`Publish release`
+
+**6. 更新下载页面**
+
+等待并确认新的发布版本同步至 Apache 镜像后，更新如下页面：
 
 https://shardingsphere.apache.org/elasticjob/current/en/downloads/
 
@@ -387,13 +440,9 @@ GPG签名文件和哈希校验文件的下载连接应该使用这个前缀： `
 
 `最新版本`中保留一个最新的版本。
 
-### GitHub版本发布
+**7. 邮件通知版本发布完成**
 
-在[GitHub Releases](https://github.com/apache/shardingsphere-elasticjob-ui/releases)页面的`shardingsphere-elasticjob-ui-${RELEASE_VERSION}`版本上点击`Edit`
-
-编辑版本号及版本说明，并点击`Publish release`
-
-### 发送邮件到`dev@shardingsphere.apache.org`和`announce@apache.org`通知完成版本发布
+发送邮件到`dev@shardingsphere.apache.org`和`announce@apache.org`通知完成版本发布
 
 通知邮件模板：
 
@@ -420,7 +469,7 @@ Release Notes: https://github.com/apache/shardingsphere-elasticjob-ui/blob/maste
 
 Website: http://shardingsphere.apache.org/elasticjob/
 
-ShardingSphere Resources:
+ShardingSphere-ElasticJob Resources:
 - Issue: https://github.com/apache/shardingsphere-elasticjob-ui/issues/
 - Mailing list: dev@shardingsphere.apache.org
 - Documents: https://shardingsphere.apache.org/elasticjob/current/en/overview/

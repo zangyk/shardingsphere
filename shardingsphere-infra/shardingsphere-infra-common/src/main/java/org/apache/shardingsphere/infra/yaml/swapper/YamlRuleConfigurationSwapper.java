@@ -17,7 +17,7 @@
 
 package org.apache.shardingsphere.infra.yaml.swapper;
 
-import org.apache.shardingsphere.infra.spi.order.OrderedSPI;
+import org.apache.shardingsphere.infra.spi.ordered.OrderedSPI;
 import org.apache.shardingsphere.infra.config.RuleConfiguration;
 import org.apache.shardingsphere.infra.yaml.config.YamlRuleConfiguration;
 
@@ -27,7 +27,7 @@ import org.apache.shardingsphere.infra.yaml.config.YamlRuleConfiguration;
  * @param <Y> type of YAML rule configuration
  * @param <T> type of rule configuration
  */
-public interface YamlRuleConfigurationSwapper<Y extends YamlRuleConfiguration, T extends RuleConfiguration> extends YamlSwapper<Y, T>, OrderedSPI<T> {
+public interface YamlRuleConfigurationSwapper<Y extends YamlRuleConfiguration, T extends RuleConfiguration> extends YamlConfigurationSwapper<Y, T>, OrderedSPI<T> {
     
     /**
      * Get YAML rule tag name.

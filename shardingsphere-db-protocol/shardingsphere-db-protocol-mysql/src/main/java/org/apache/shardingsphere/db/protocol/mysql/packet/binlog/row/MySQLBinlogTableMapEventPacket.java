@@ -18,7 +18,7 @@
 package org.apache.shardingsphere.db.protocol.mysql.packet.binlog.row;
 
 import lombok.Getter;
-import org.apache.shardingsphere.db.protocol.mysql.constant.MySQLColumnType;
+import org.apache.shardingsphere.db.protocol.mysql.constant.MySQLBinaryColumnType;
 import org.apache.shardingsphere.db.protocol.mysql.packet.binlog.AbstractMySQLBinlogEventPacket;
 import org.apache.shardingsphere.db.protocol.mysql.packet.binlog.MySQLBinlogEventHeader;
 import org.apache.shardingsphere.db.protocol.mysql.packet.binlog.row.column.MySQLBinlogColumnDef;
@@ -52,13 +52,13 @@ public final class MySQLBinlogTableMapEventPacket extends AbstractMySQLBinlogEve
     
     public MySQLBinlogTableMapEventPacket(final MySQLBinlogEventHeader binlogEventHeader, final MySQLPacketPayload payload) {
         super(binlogEventHeader);
-        this.tableId = payload.readInt6();
-        this.flags = payload.readInt2();
-        this.schemaName = payload.readStringFix(payload.readInt1());
+        tableId = payload.readInt6();
+        flags = payload.readInt2();
+        schemaName = payload.readStringFix(payload.readInt1());
         payload.skipReserved(1);
-        this.tableName = payload.readStringFix(payload.readInt1());
+        tableName = payload.readStringFix(payload.readInt1());
         payload.skipReserved(1);
-        this.columnCount = (int) payload.readIntLenenc();
+        columnCount = (int) payload.readIntLenenc();
         columnDefs = new LinkedList<>();
         readColumnDefs(payload);
         readColumnMetaDefs(payload);
@@ -67,7 +67,7 @@ public final class MySQLBinlogTableMapEventPacket extends AbstractMySQLBinlogEve
     
     private void readColumnDefs(final MySQLPacketPayload payload) {
         for (int i = 0; i < columnCount; i++) {
-            columnDefs.add(new MySQLBinlogColumnDef(MySQLColumnType.valueOf(payload.readInt1())));
+            columnDefs.add(new MySQLBinlogColumnDef(MySQLBinaryColumnType.valueOf(payload.readInt1())));
         }
     }
     
@@ -78,7 +78,7 @@ public final class MySQLBinlogTableMapEventPacket extends AbstractMySQLBinlogEve
         }
     }
     
-    private int readColumnMetaDef(final MySQLColumnType columnType, final MySQLPacketPayload payload) {
+    private int readColumnMetaDef(final MySQLBinaryColumnType columnType, final MySQLPacketPayload payload) {
         switch (columnType) {
             case MYSQL_TYPE_STRING:
             case MYSQL_TYPE_DECIMAL:

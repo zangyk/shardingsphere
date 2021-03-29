@@ -17,12 +17,14 @@
 
 package org.apache.shardingsphere.sharding.rule.builder;
 
-import org.apache.shardingsphere.infra.rule.ShardingSphereRuleBuilder;
+import org.apache.shardingsphere.infra.database.type.DatabaseType;
+import org.apache.shardingsphere.infra.rule.builder.ShardingSphereRuleBuilder;
+import org.apache.shardingsphere.sharding.algorithm.config.AlgorithmProvidedShardingRuleConfiguration;
 import org.apache.shardingsphere.sharding.constant.ShardingOrder;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
-import org.apache.shardingsphere.sharding.algorithm.config.AlgorithmProvidedShardingRuleConfiguration;
 
-import java.util.Collection;
+import javax.sql.DataSource;
+import java.util.Map;
 
 /**
  * Algorithm provided sharding rule builder.
@@ -30,8 +32,9 @@ import java.util.Collection;
 public final class AlgorithmProvidedShardingRuleBuilder implements ShardingSphereRuleBuilder<ShardingRule, AlgorithmProvidedShardingRuleConfiguration> {
     
     @Override
-    public ShardingRule build(final AlgorithmProvidedShardingRuleConfiguration ruleConfiguration, final Collection<String> dataSourceNames) {
-        return new ShardingRule(ruleConfiguration, dataSourceNames);
+    public ShardingRule build(final String schemaName,
+                              final Map<String, DataSource> dataSourceMap, final DatabaseType databaseType, final AlgorithmProvidedShardingRuleConfiguration ruleConfig) {
+        return new ShardingRule(ruleConfig, databaseType, dataSourceMap);
     }
     
     @Override

@@ -26,7 +26,7 @@ import org.apache.shardingsphere.db.protocol.postgresql.payload.PostgreSQLPacket
 
 import java.sql.SQLException;
 import java.sql.SQLXML;
-import java.util.List;
+import java.util.Collection;
 
 /**
  * Data row packet for PostgreSQL.
@@ -38,7 +38,7 @@ public final class PostgreSQLDataRowPacket implements PostgreSQLPacket {
     
     private final char messageType = PostgreSQLCommandPacketType.DATA_ROW.getValue();
     
-    private final List<Object> data;
+    private final Collection<Object> data;
     
     @Override
     public void write(final PostgreSQLPacketPayload payload) {
@@ -65,7 +65,7 @@ public final class PostgreSQLDataRowPacket implements PostgreSQLPacket {
         try {
             payload.writeInt4(((SQLXML) data).getString().getBytes().length);
             payload.writeStringEOF(((SQLXML) data).getString());
-        } catch (SQLException ex) {
+        } catch (final SQLException ex) {
             log.error("PostgreSQL DataRowPacket write SQLXML type exception", ex);
         }
     }

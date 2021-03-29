@@ -11,13 +11,13 @@ Answer:
 
 `sql.show` configuration is provided in ShardingSphere-Proxy and post-1.5.0 version of ShardingSphere-JDBC, enabling the context parsing, rewritten SQL and the routed data source printed to info log. `sql.show` configuration is off in default, and users can turn it on in configurations.
 
+A Tip: Property `sql.show` has changed to `sql-show` in version 5.x.
+
 ## 2. Why do some compiling errors appear?
 
 Answer:
 
 ShardingSphere uses lombok to enable minimal coding. For more details about using and installment, please refer to the official website of [lombok](https://projectlombok.org/download.html).
-
-shardingsphere-orchestration-reg module needs to execute `mvn install` command first, and generate gRPC java files according to protobuf files.
 
 ## 3. Why is xsd unable to be found when Spring Namespace is used?
 
@@ -25,7 +25,8 @@ Answer:
 
 The use norm of Spring Namespace does not require to deploy xsd files to the official website. But considering some users' needs, we will deploy them to ShardingSphere's official website.
 
-Actually, META-INF\spring.schemas in the jar package of shardingsphere-jdbc-spring-namespace has been configured with the position of xsd files: META-INF\namespace\sharding.xsd and META-INF\namespace\master-slave.xsd, so you only need to make sure that the file is in the jar package.
+Actually, META-INF\spring.schemas in the jar package of shardingsphere-jdbc-spring-namespace has been configured with the position of xsd files: 
+META-INF\namespace\sharding.xsd and META-INF\namespace\replica-query.xsd, so you only need to make sure that the file is in the jar package.
 
 ## 4. How to solve `Cloud not resolve placeholder … in string value …` error?
 
@@ -91,13 +92,13 @@ There are two solutions for the above problem: 1. Configure JVM parameter “-or
 
 Reasons:
 
-com.dangdang.ddframe.rdb.sharding.merger.orderby.OrderByValue#getOrderValues():
+`org.apache.shardingsphere.sharding.merge.dql.orderby.OrderByValue#getOrderValues()`:
 
 ```java
     private List<Comparable<?>> getOrderValues() throws SQLException {
         List<Comparable<?>> result = new ArrayList<>(orderByItems.size());
-        for (OrderItem each : orderByItems) {
-            Object value = resultSet.getObject(each.getIndex());
+        for (OrderByItem each : orderByItems) {
+            Object value = queryResult.getValue(each.getIndex(), Object.class);
             Preconditions.checkState(null == value || value instanceof Comparable, "Order by value must implements Comparable");
             result.add((Comparable<?>) value);
         }
@@ -140,7 +141,7 @@ After using resultSet.getObject(int index), for TimeStamp oracle, the system wil
 
 Answer:
 
-When using `Proxool` to configure multiple data sources, each one of them should be configured with alias. It is because `Proxool` would check whether existing alias is included in the connection pool or not when acquiring connections, so without alias, each connection will be acquired from the same data source.
+When using `Proxool` to configure multiple data sources, each one of them should be configured with alias. It is because `Proxool` would check whether existing alias is included in the connection pool or not when acquiring connections, so without alias, each connection will be acquired from the same data source. 
 
 The followings are core codes from ProxoolDataSource getConnection method in `Proxool`:
 
@@ -232,15 +233,18 @@ The solutions are as follows:
 Answer:
 
 1. Update to 4.0.1 above, which helps speed up the process of loading table metadata from `the default dataSource`.
-2. Configure `max.connections.size.per.query`(Default value is 1) higher referring to connection pool you adopt(Version >= 3.0.0.M3).
+2. Configure:
+- `max.connections.size.per.query`(Default value is 1) higher referring to connection pool you adopt(Version >= 3.0.0.M3 & Version < 5.0.0).
+- `max-connections-size-per-query`(Default value is 1) higher referring to connection pool you adopt(Version >= 5.0.0).
 
 ## 19. How to allow range query with using inline sharding strategy(BETWEEN AND, \>, \<, \>=, \<=)?
 
 Answer:
 
-1. Update to 4.0.1 above.
-2. Configure`allow.range.query.with.inline.sharding` to `true` (Default value is `false`).
-3. A tip here: then each range query will be broadcast to every sharding table.
+1. Update to 4.1.0 above.
+2. Configure(A tip here: then each range query will be broadcast to every sharding table):
+- Version 4.x: `allow.range.query.with.inline.sharding` to `true` (Default value is `false`).
+- Version 5.x: `allow-range-query-with-inline-sharding` to `true` in InlineShardingStrategy (Default value is `false`).
 
 ## 20. Why there may be an error when configure both shardingsphere-jdbc-spring-boot-starter and a spring-boot-starter of certain datasource pool(such as druid)?
  

@@ -34,8 +34,8 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.shardingsphere.transaction.base.seata.at.fixture.MockSeataServer;
 import org.apache.shardingsphere.transaction.core.ResourceDataSource;
 import org.apache.shardingsphere.transaction.core.TransactionType;
-import org.apache.shardingsphere.infra.database.type.DatabaseTypes;
-import org.apache.shardingsphere.infra.executor.kernel.ExecutorDataMap;
+import org.apache.shardingsphere.infra.database.type.DatabaseTypeRegistry;
+import org.apache.shardingsphere.infra.executor.kernel.model.ExecutorDataMap;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -47,6 +47,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import javax.sql.DataSource;
 import java.lang.reflect.Field;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -89,7 +90,7 @@ public final class SeataATShardingTransactionManagerTest {
     
     @Before
     public void setUp() {
-        seataATShardingTransactionManager.init(DatabaseTypes.getActualDatabaseType("MySQL"), getResourceDataSources());
+        seataATShardingTransactionManager.init(DatabaseTypeRegistry.getActualDatabaseType("MySQL"), getResourceDataSources(), "seata");
     }
     
     @After
@@ -124,8 +125,7 @@ public final class SeataATShardingTransactionManagerTest {
     }
     
     @Test
-    @SneakyThrows
-    public void assertGetConnection() {
+    public void assertGetConnection() throws SQLException {
         Connection actual = seataATShardingTransactionManager.getConnection("demo_ds");
         assertThat(actual, instanceOf(ConnectionProxy.class));
     }

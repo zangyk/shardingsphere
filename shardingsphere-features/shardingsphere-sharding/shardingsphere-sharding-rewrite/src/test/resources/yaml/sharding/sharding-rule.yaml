@@ -16,7 +16,8 @@
 #
 
 dataSources:
-  db: !!com.zaxxer.hikari.HikariDataSource
+  db:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     driverClassName: org.h2.Driver
     jdbcUrl: jdbc:h2:mem:db;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;MODE=MYSQL
     username: sa
@@ -47,11 +48,11 @@ rules:
     t_account_inline:
       type: INLINE
       props:
-        algorithm.expression: t_account_${account_id % 2}
+        algorithm-expression: t_account_${account_id % 2}
     t_account_detail_inline:
       type: INLINE
       props:
-        algorithm.expression: t_account_detail_${account_id % 2}
+        algorithm-expression: t_account_detail_${account_id % 2}
   
   keyGenerators:
     test:

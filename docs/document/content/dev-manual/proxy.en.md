@@ -1,7 +1,7 @@
 +++
-pre = "<b>5.10. </b>"
+pre = "<b>5.11. </b>"
 title = "Proxy"
-weight = 10
+weight = 11
 chapter = true
 +++
 
@@ -11,10 +11,10 @@ chapter = true
 | -------------------------------- | ------------------------------------------------------------------------------- |
 | DatabaseProtocolFrontendEngine   | Regulate parse and adapter protocol of database access for ShardingSphere-Proxy |
 
-| *Implementation Class*           | *Description*                                                                   |
-| -------------------------------- | ------------------------------------------------------------------------------- |
-| MySQLProtocolFrontendEngine      | Base on MySQL database protocol                                                 |
-| PostgreSQLProtocolFrontendEngine | Base on postgreSQL database protocol                                            |
+| *Implementation Class*   | *Description*                                                                   |
+| ------------------------ | ------------------------------------------------------------------------------- |
+| MySQLFrontendEngine      | Base on MySQL database protocol                                                 |
+| PostgreSQLFrontendEngine | Base on PostgreSQL database protocol                                            |
 
 ## JDBCDriverURLRecognizer
 

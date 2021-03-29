@@ -25,7 +25,7 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 
-public class YamlRangeDataSourceFactory {
+public final class YamlRangeDataSourceFactory {
     
     public static DataSource newInstance(final ShardingType shardingType) throws SQLException, IOException {
         switch (shardingType) {
@@ -35,10 +35,10 @@ public class YamlRangeDataSourceFactory {
                 return YamlShardingSphereDataSourceFactory.createDataSource(getFile("/META-INF/sharding-tables-range.yaml"));
             case SHARDING_DATABASES_AND_TABLES:
                 return YamlShardingSphereDataSourceFactory.createDataSource(getFile("/META-INF/sharding-databases-tables-range.yaml"));
-            case MASTER_SLAVE:
-                return YamlShardingSphereDataSourceFactory.createDataSource(getFile("/META-INF/master-slave.yaml"));
-            case SHARDING_MASTER_SLAVE:
-                return YamlShardingSphereDataSourceFactory.createDataSource(getFile("/META-INF/sharding-master-slave-range.yaml"));
+            case READ_WRITE_SPLITTING:
+                return YamlShardingSphereDataSourceFactory.createDataSource(getFile("/META-INF/read-write-splitting.yaml"));
+            case SHARDING_READ_WRITE_SPLITTING:
+                return YamlShardingSphereDataSourceFactory.createDataSource(getFile("/META-INF/sharding-read-write-splitting.yaml"));
             default:
                 throw new UnsupportedOperationException(shardingType.name());
         }

@@ -21,10 +21,13 @@ import com.atomikos.icatch.config.UserTransactionService;
 import com.atomikos.icatch.config.UserTransactionServiceImp;
 import com.atomikos.icatch.jta.UserTransactionManager;
 import lombok.SneakyThrows;
+import org.apache.shardingsphere.transaction.core.XATransactionManagerType;
 import org.apache.shardingsphere.transaction.xa.spi.SingleXAResource;
 import org.apache.shardingsphere.transaction.xa.spi.XATransactionManager;
 
 import javax.sql.XADataSource;
+import javax.transaction.RollbackException;
+import javax.transaction.SystemException;
 import javax.transaction.TransactionManager;
 
 /**
@@ -32,12 +35,14 @@ import javax.transaction.TransactionManager;
  */
 public final class AtomikosTransactionManager implements XATransactionManager {
     
-    private final UserTransactionManager transactionManager = new UserTransactionManager();
+    private UserTransactionManager transactionManager;
     
-    private final UserTransactionService userTransactionService = new UserTransactionServiceImp();
+    private UserTransactionService userTransactionService;
     
     @Override
     public void init() {
+        transactionManager = new UserTransactionManager();
+        userTransactionService = new UserTransactionServiceImp();
         userTransactionService.init();
     }
     
@@ -51,8 +56,8 @@ public final class AtomikosTransactionManager implements XATransactionManager {
         userTransactionService.removeResource(new AtomikosXARecoverableResource(dataSourceName, xaDataSource));
     }
     
+    @SneakyThrows({SystemException.class, RollbackException.class})
     @Override
-    @SneakyThrows
     public void enlistResource(final SingleXAResource xaResource) {
         transactionManager.getTransaction().enlistResource(xaResource);
     }
@@ -65,5 +70,10 @@ public final class AtomikosTransactionManager implements XATransactionManager {
     @Override
     public void close() {
         userTransactionService.shutdown(true);
+    }
+    
+    @Override
+    public String getType() {
+        return XATransactionManagerType.ATOMIKOS.getType();
     }
 }

@@ -18,38 +18,42 @@
 ######################################################################################################
 # 
 # Here you can configure the rules for the proxy.
-# This example is configuration of sharding rule.
-#   
-# If you want to use sharding, please refer to this file; 
-# if you want to use master-slave, please refer to the config-master_slave.yaml.
-# if you want to use master-slave, please refer to the config-encrypt.yaml.
+# This example is configuration of shadow rule.
 # 
 ######################################################################################################
 #
 #schemaName: shadow_db
 #
-#dataSourceCommon:
-#  username: postgres
-#  password: postgres
-#  connectionTimeoutMilliseconds: 30000
-#  idleTimeoutMilliseconds: 60000
-#  maxLifetimeMilliseconds: 1800000
-#  maxPoolSize: 50
-#  minPoolSize: 1
-#  maintenanceIntervalMilliseconds: 30000
-#
 #dataSources:
 #  ds:
 #    url: jdbc:postgresql://127.0.0.1:5432/demo_ds_0?serverTimezone=UTC&useSSL=false
+#    username: postgres
+#    password: postgres
+#    connectionTimeoutMilliseconds: 30000
+#    idleTimeoutMilliseconds: 60000
+#    maxLifetimeMilliseconds: 1800000
+#    maxPoolSize: 50
+#    minPoolSize: 1
+#    maintenanceIntervalMilliseconds: 30000
 #  shadow_ds:
 #    url: jdbc:postgresql://127.0.0.1:5432/demo_ds_1?serverTimezone=UTC&useSSL=false
+#    username: postgres
+#    password: postgres
+#    connectionTimeoutMilliseconds: 30000
+#    idleTimeoutMilliseconds: 60000
+#    maxLifetimeMilliseconds: 1800000
+#    maxPoolSize: 50
+#    minPoolSize: 1
+#    maintenanceIntervalMilliseconds: 30000
 #
 #
 #rules:
 #- !SHADOW
 #  column: shadow
-#  shadowMappings:
-#    ds: shadow_ds
+#  sourceDataSourceNames:
+#   - ds
+#  shadowDataSourceNames:
+#   - shadow_ds
 #
 #
 ######################################################################################################
@@ -60,24 +64,32 @@
 #
 #schemaName: shadow_db
 #
-#dataSourceCommon:
-#  username: root
-#  password:
-#  connectionTimeoutMilliseconds: 30000
-#  idleTimeoutMilliseconds: 60000
-#  maxLifetimeMilliseconds: 1800000
-#  maxPoolSize: 50
-#  minPoolSize: 1
-#  maintenanceIntervalMilliseconds: 30000
-#
 #dataSources:
 #  ds:
 #    url: jdbc:mysql://127.0.0.1:3306/demo_ds_0?serverTimezone=UTC&useSSL=false
+#    username: root
+#    password:
+#    connectionTimeoutMilliseconds: 30000
+#    idleTimeoutMilliseconds: 60000
+#    maxLifetimeMilliseconds: 1800000
+#    maxPoolSize: 50
+#    minPoolSize: 1
+#    maintenanceIntervalMilliseconds: 30000
 #  shadow_ds:
 #    url: jdbc:mysql://127.0.0.1:3306/demo_ds_1?serverTimezone=UTC&useSSL=false
+#    username: root
+#    password:
+#    connectionTimeoutMilliseconds: 30000
+#    idleTimeoutMilliseconds: 60000
+#    maxLifetimeMilliseconds: 1800000
+#    maxPoolSize: 50
+#    minPoolSize: 1
+#    maintenanceIntervalMilliseconds: 30000
 #
 #rules:
 #- !SHADOW
 #  column: shadow
-#  shadowMappings:
-#    ds: shadow_ds
+#  sourceDataSourceNames:
+#   - ds
+#  shadowDataSourceNames:
+#   - shadow_ds

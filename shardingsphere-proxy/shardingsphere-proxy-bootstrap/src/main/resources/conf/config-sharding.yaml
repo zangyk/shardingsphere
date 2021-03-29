@@ -19,30 +19,32 @@
 # 
 # Here you can configure the rules for the proxy.
 # This example is configuration of sharding rule.
-#   
-# If you want to use sharding, please refer to this file; 
-# if you want to use master-slave, please refer to the config-master_slave.yaml.
-# if you want to use master-slave, please refer to the config-encrypt.yaml.
 # 
 ######################################################################################################
 #
 #schemaName: sharding_db
 #
-#dataSourceCommon:
-#  username: postgres
-#  password: postgres
-#  connectionTimeoutMilliseconds: 30000
-#  idleTimeoutMilliseconds: 60000
-#  maxLifetimeMilliseconds: 1800000
-#  maxPoolSize: 50
-#  minPoolSize: 1
-#  maintenanceIntervalMilliseconds: 30000
-#
 #dataSources:
 #  ds_0:
 #    url: jdbc:postgresql://127.0.0.1:5432/demo_ds_0?serverTimezone=UTC&useSSL=false
+#    username: postgres
+#    password: postgres
+#    connectionTimeoutMilliseconds: 30000
+#    idleTimeoutMilliseconds: 60000
+#    maxLifetimeMilliseconds: 1800000
+#    maxPoolSize: 50
+#    minPoolSize: 1
+#    maintenanceIntervalMilliseconds: 30000
 #  ds_1:
 #    url: jdbc:postgresql://127.0.0.1:5432/demo_ds_1?serverTimezone=UTC&useSSL=false
+#    username: postgres
+#    password: postgres
+#    connectionTimeoutMilliseconds: 30000
+#    idleTimeoutMilliseconds: 60000
+#    maxLifetimeMilliseconds: 1800000
+#    maxPoolSize: 50
+#    minPoolSize: 1
+#    maintenanceIntervalMilliseconds: 30000
 #
 #rules:
 #- !SHARDING
@@ -78,21 +80,21 @@
 #    database_inline:
 #      type: INLINE
 #      props:
-#        algorithm.expression: ds_${user_id % 2}
+#        algorithm-expression: ds_${user_id % 2}
 #    t_order_inline:
 #      type: INLINE
 #      props:
-#        algorithm.expression: t_order_${order_id % 2}
+#        algorithm-expression: t_order_${order_id % 2}
 #    t_order_item_inline:
 #      type: INLINE
 #      props:
-#        algorithm.expression: t_order_item_${order_id % 2}
+#        algorithm-expression: t_order_item_${order_id % 2}
 #  
 #  keyGenerators:
-#      snowflake:
-#        type: SNOWFLAKE
-#        props:
-#            worker.id: 123
+#    snowflake:
+#      type: SNOWFLAKE
+#      props:
+#        worker-id: 123
 
 ######################################################################################################
 #
@@ -102,21 +104,27 @@
 
 #schemaName: sharding_db
 #
-#dataSourceCommon:
-#  username: root
-#  password:
-#  connectionTimeoutMilliseconds: 30000
-#  idleTimeoutMilliseconds: 60000
-#  maxLifetimeMilliseconds: 1800000
-#  maxPoolSize: 50
-#  minPoolSize: 1
-#  maintenanceIntervalMilliseconds: 30000
-#
 #dataSources:
 #  ds_0:
 #    url: jdbc:mysql://127.0.0.1:3306/demo_ds_0?serverTimezone=UTC&useSSL=false
+#    username: root
+#    password:
+#    connectionTimeoutMilliseconds: 30000
+#    idleTimeoutMilliseconds: 60000
+#    maxLifetimeMilliseconds: 1800000
+#    maxPoolSize: 50
+#    minPoolSize: 1
+#    maintenanceIntervalMilliseconds: 30000
 #  ds_1:
 #    url: jdbc:mysql://127.0.0.1:3306/demo_ds_1?serverTimezone=UTC&useSSL=false
+#    username: root
+#    password:
+#    connectionTimeoutMilliseconds: 30000
+#    idleTimeoutMilliseconds: 60000
+#    maxLifetimeMilliseconds: 1800000
+#    maxPoolSize: 50
+#    minPoolSize: 1
+#    maintenanceIntervalMilliseconds: 30000
 #
 #rules:
 #- !SHARDING
@@ -152,18 +160,18 @@
 #    database_inline:
 #      type: INLINE
 #      props:
-#        algorithm.expression: ds_${user_id % 2}
+#        algorithm-expression: ds_${user_id % 2}
 #    t_order_inline:
 #      type: INLINE
 #      props:
-#        algorithm.expression: t_order_${order_id % 2}
+#        algorithm-expression: t_order_${order_id % 2}
 #    t_order_item_inline:
 #      type: INLINE
 #      props:
-#        algorithm.expression: t_order_item_${order_id % 2}
+#        algorithm-expression: t_order_item_${order_id % 2}
 #  
 #  keyGenerators:
-#      snowflake:
-#        type: SNOWFLAKE
-#        props:
-#            worker.id: 123
+#    snowflake:
+#      type: SNOWFLAKE
+#      props:
+#        worker-id: 123

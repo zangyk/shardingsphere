@@ -18,23 +18,28 @@
 package org.apache.shardingsphere.sharding.merge.dql.orderby;
 
 import com.google.common.collect.Lists;
-import org.apache.shardingsphere.sql.parser.binder.metadata.schema.SchemaMetaData;
-import org.apache.shardingsphere.sql.parser.binder.segment.select.groupby.GroupByContext;
-import org.apache.shardingsphere.sql.parser.binder.segment.select.orderby.OrderByContext;
-import org.apache.shardingsphere.sql.parser.binder.segment.select.orderby.OrderByItem;
-import org.apache.shardingsphere.sql.parser.binder.segment.select.projection.Projection;
-import org.apache.shardingsphere.sql.parser.binder.segment.select.projection.ProjectionsContext;
-import org.apache.shardingsphere.sql.parser.binder.segment.select.projection.impl.ColumnProjection;
-import org.apache.shardingsphere.sql.parser.binder.statement.dml.SelectStatementContext;
-import org.apache.shardingsphere.sql.parser.sql.constant.OrderDirection;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.column.ColumnSegment;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.item.ProjectionsSegment;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.order.item.ColumnOrderByItemSegment;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.order.item.IndexOrderByItemSegment;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.order.item.OrderByItemSegment;
-import org.apache.shardingsphere.sql.parser.sql.statement.dml.SelectStatement;
-import org.apache.shardingsphere.sql.parser.sql.value.identifier.IdentifierValue;
-import org.apache.shardingsphere.infra.executor.sql.QueryResult;
+import org.apache.shardingsphere.infra.executor.sql.execute.result.query.QueryResult;
+import org.apache.shardingsphere.infra.metadata.schema.ShardingSphereSchema;
+import org.apache.shardingsphere.infra.binder.segment.select.groupby.GroupByContext;
+import org.apache.shardingsphere.infra.binder.segment.select.orderby.OrderByContext;
+import org.apache.shardingsphere.infra.binder.segment.select.orderby.OrderByItem;
+import org.apache.shardingsphere.infra.binder.segment.select.projection.Projection;
+import org.apache.shardingsphere.infra.binder.segment.select.projection.ProjectionsContext;
+import org.apache.shardingsphere.infra.binder.segment.select.projection.impl.ColumnProjection;
+import org.apache.shardingsphere.infra.binder.statement.dml.SelectStatementContext;
+import org.apache.shardingsphere.sql.parser.sql.common.constant.OrderDirection;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.column.ColumnSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.ProjectionsSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.order.item.ColumnOrderByItemSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.order.item.IndexOrderByItemSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.order.item.OrderByItemSegment;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dml.MySQLSelectStatement;
+import org.apache.shardingsphere.sql.parser.sql.dialect.statement.oracle.dml.OracleSelectStatement;
+import org.apache.shardingsphere.sql.parser.sql.dialect.statement.postgresql.dml.PostgreSQLSelectStatement;
+import org.apache.shardingsphere.sql.parser.sql.dialect.statement.sql92.dml.SQL92SelectStatement;
+import org.apache.shardingsphere.sql.parser.sql.dialect.statement.sqlserver.dml.SQLServerSelectStatement;
 import org.junit.Test;
 import org.mockito.internal.util.reflection.FieldSetter;
 
@@ -50,81 +55,150 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public final class OrderByValueTest {
-    
+
     @Test
-    public void assertCompareToForAsc() throws SQLException, NoSuchFieldException {
-        SelectStatement selectStatement = new SelectStatement();
+    public void assertCompareToForAscForMySQL() throws SQLException, NoSuchFieldException {
+        assertCompareToForAsc(new MySQLSelectStatement());   
+    }
+
+    @Test
+    public void assertCompareToForAscForOracle() throws SQLException, NoSuchFieldException {
+        assertCompareToForAsc(new OracleSelectStatement());
+    }
+
+    @Test
+    public void assertCompareToForAscForPostgreSQL() throws SQLException, NoSuchFieldException {
+        assertCompareToForAsc(new PostgreSQLSelectStatement());
+    }
+
+    @Test
+    public void assertCompareToForAscForSQL92() throws SQLException, NoSuchFieldException {
+        assertCompareToForAsc(new SQL92SelectStatement());
+    }
+
+    @Test
+    public void assertCompareToForAscForSQLServer() throws SQLException, NoSuchFieldException {
+        assertCompareToForAsc(new SQLServerSelectStatement());
+    }
+    
+    private void assertCompareToForAsc(final SelectStatement selectStatement) throws SQLException, NoSuchFieldException {
         ProjectionsSegment projectionsSegment = new ProjectionsSegment(0, 0);
         selectStatement.setProjections(projectionsSegment);
         SelectStatementContext selectStatementContext = new SelectStatementContext(
             selectStatement, new GroupByContext(Collections.emptyList(), 0), createOrderBy(), createProjectionsContext(), null);
-        SchemaMetaData schemaMetaData = mock(SchemaMetaData.class);
+        ShardingSphereSchema schema = mock(ShardingSphereSchema.class);
         QueryResult queryResult1 = createQueryResult("1", "2");
         OrderByValue orderByValue1 = new OrderByValue(queryResult1, Arrays.asList(
             createOrderByItem(new IndexOrderByItemSegment(0, 0, 1, OrderDirection.ASC, OrderDirection.ASC)),
             createOrderByItem(new IndexOrderByItemSegment(0, 0, 2, OrderDirection.ASC, OrderDirection.ASC))),
-            selectStatementContext, schemaMetaData);
+            selectStatementContext, schema);
         FieldSetter.setField(orderByValue1, OrderByValue.class.getDeclaredField("orderValuesCaseSensitive"), Arrays.asList(false, false));
         assertTrue(orderByValue1.next());
         QueryResult queryResult2 = createQueryResult("3", "4");
         OrderByValue orderByValue2 = new OrderByValue(queryResult2, Arrays.asList(
             createOrderByItem(new IndexOrderByItemSegment(0, 0, 1, OrderDirection.ASC, OrderDirection.ASC)),
             createOrderByItem(new IndexOrderByItemSegment(0, 0, 2, OrderDirection.ASC, OrderDirection.ASC))),
-            selectStatementContext, schemaMetaData);
+            selectStatementContext, schema);
         FieldSetter.setField(orderByValue2, OrderByValue.class.getDeclaredField("orderValuesCaseSensitive"), Arrays.asList(false, false));
         assertTrue(orderByValue2.next());
         assertTrue(orderByValue1.compareTo(orderByValue2) < 0);
         assertFalse(orderByValue1.getQueryResult().next());
         assertFalse(orderByValue2.getQueryResult().next());
     }
-    
+
     @Test
-    public void assertCompareToForDesc() throws SQLException, NoSuchFieldException {
-        SelectStatement selectStatement = new SelectStatement();
+    public void assertCompareToForDescForMySQL() throws SQLException, NoSuchFieldException {
+        assertCompareToForDesc(new MySQLSelectStatement());
+    }
+
+    @Test
+    public void assertCompareToForDescForOracle() throws SQLException, NoSuchFieldException {
+        assertCompareToForDesc(new OracleSelectStatement());
+    }
+
+    @Test
+    public void assertCompareToForDescForPostgreSQL() throws SQLException, NoSuchFieldException {
+        assertCompareToForDesc(new PostgreSQLSelectStatement());
+    }
+
+    @Test
+    public void assertCompareToForDescForSQL92() throws SQLException, NoSuchFieldException {
+        assertCompareToForDesc(new SQL92SelectStatement());
+    }
+
+    @Test
+    public void assertCompareToForDescForSQLServer() throws SQLException, NoSuchFieldException {
+        assertCompareToForDesc(new SQLServerSelectStatement());
+    }
+    
+    private void assertCompareToForDesc(final SelectStatement selectStatement) throws SQLException, NoSuchFieldException {
         ProjectionsSegment projectionsSegment = new ProjectionsSegment(0, 0);
         selectStatement.setProjections(projectionsSegment);
         SelectStatementContext selectStatementContext = new SelectStatementContext(
             selectStatement, new GroupByContext(Collections.emptyList(), 0), createOrderBy(), createProjectionsContext(), null);
-        SchemaMetaData schemaMetaData = mock(SchemaMetaData.class);
+        ShardingSphereSchema schema = mock(ShardingSphereSchema.class);
         QueryResult queryResult1 = createQueryResult("1", "2");
         OrderByValue orderByValue1 = new OrderByValue(queryResult1, Arrays.asList(
             createOrderByItem(new IndexOrderByItemSegment(0, 0, 1, OrderDirection.DESC, OrderDirection.ASC)),
             createOrderByItem(new IndexOrderByItemSegment(0, 0, 2, OrderDirection.DESC, OrderDirection.ASC))),
-            selectStatementContext, schemaMetaData);
+            selectStatementContext, schema);
         FieldSetter.setField(orderByValue1, OrderByValue.class.getDeclaredField("orderValuesCaseSensitive"), Arrays.asList(false, false));
         assertTrue(orderByValue1.next());
         QueryResult queryResult2 = createQueryResult("3", "4");
         OrderByValue orderByValue2 = new OrderByValue(queryResult2, Arrays.asList(
             createOrderByItem(new IndexOrderByItemSegment(0, 0, 1, OrderDirection.DESC, OrderDirection.ASC)),
             createOrderByItem(new IndexOrderByItemSegment(0, 0, 2, OrderDirection.DESC, OrderDirection.ASC))),
-            selectStatementContext, schemaMetaData);
+            selectStatementContext, schema);
         FieldSetter.setField(orderByValue2, OrderByValue.class.getDeclaredField("orderValuesCaseSensitive"), Arrays.asList(false, false));
         assertTrue(orderByValue2.next());
         assertTrue(orderByValue1.compareTo(orderByValue2) > 0);
         assertFalse(orderByValue1.getQueryResult().next());
         assertFalse(orderByValue2.getQueryResult().next());
     }
-    
+
     @Test
-    public void assertCompareToWhenEqual() throws SQLException, NoSuchFieldException {
-        SelectStatement selectStatement = new SelectStatement();
+    public void assertCompareToWhenEqualForMySQL() throws SQLException, NoSuchFieldException {
+        assertCompareToWhenEqual(new MySQLSelectStatement());
+    }
+
+    @Test
+    public void assertCompareToWhenEqualForOracle() throws SQLException, NoSuchFieldException {
+        assertCompareToWhenEqual(new OracleSelectStatement());
+    }
+
+    @Test
+    public void assertCompareToWhenEqualForPostgreSQL() throws SQLException, NoSuchFieldException {
+        assertCompareToWhenEqual(new PostgreSQLSelectStatement());
+    }
+
+    @Test
+    public void assertCompareToWhenEqualForSQL92() throws SQLException, NoSuchFieldException {
+        assertCompareToWhenEqual(new SQL92SelectStatement());
+    }
+
+    @Test
+    public void assertCompareToWhenEqualForSQLServer() throws SQLException, NoSuchFieldException {
+        assertCompareToWhenEqual(new SQLServerSelectStatement());
+    }
+    
+    private void assertCompareToWhenEqual(final SelectStatement selectStatement) throws SQLException, NoSuchFieldException {
         ProjectionsSegment projectionsSegment = new ProjectionsSegment(0, 0);
         selectStatement.setProjections(projectionsSegment);
         SelectStatementContext selectStatementContext = new SelectStatementContext(
             selectStatement, new GroupByContext(Collections.emptyList(), 0), createOrderBy(), createProjectionsContext(), null);
-        SchemaMetaData schemaMetaData = mock(SchemaMetaData.class);
+        ShardingSphereSchema schema = mock(ShardingSphereSchema.class);
         QueryResult queryResult1 = createQueryResult("1", "2");
         OrderByValue orderByValue1 = new OrderByValue(queryResult1, Arrays.asList(
             createOrderByItem(new IndexOrderByItemSegment(0, 0, 1, OrderDirection.ASC, OrderDirection.ASC)),
             createOrderByItem(new IndexOrderByItemSegment(0, 0, 2, OrderDirection.DESC, OrderDirection.ASC))),
-            selectStatementContext, schemaMetaData);
+            selectStatementContext, schema);
         FieldSetter.setField(orderByValue1, OrderByValue.class.getDeclaredField("orderValuesCaseSensitive"), Arrays.asList(false, false));
         assertTrue(orderByValue1.next());
         QueryResult queryResult2 = createQueryResult("1", "2");
         OrderByValue orderByValue2 = new OrderByValue(queryResult2, Arrays.asList(
             createOrderByItem(new IndexOrderByItemSegment(0, 0, 1, OrderDirection.ASC, OrderDirection.ASC)),
             createOrderByItem(new IndexOrderByItemSegment(0, 0, 2, OrderDirection.DESC, OrderDirection.ASC))),
-            selectStatementContext, schemaMetaData);
+            selectStatementContext, schema);
         FieldSetter.setField(orderByValue2, OrderByValue.class.getDeclaredField("orderValuesCaseSensitive"), Arrays.asList(false, false));
         assertTrue(orderByValue2.next());
         assertThat(orderByValue1.compareTo(orderByValue2), is(0));

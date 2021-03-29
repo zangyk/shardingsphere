@@ -17,13 +17,11 @@
 
 package org.apache.shardingsphere.proxy.backend.text.sctl.show;
 
-import org.apache.shardingsphere.infra.executor.sql.raw.execute.result.query.QueryHeader;
+import org.apache.shardingsphere.proxy.backend.response.header.query.impl.QueryHeader;
 import org.apache.shardingsphere.infra.merge.result.MergedResult;
 import org.apache.shardingsphere.proxy.backend.communication.jdbc.connection.BackendConnection;
-import org.apache.shardingsphere.proxy.backend.response.BackendResponse;
-import org.apache.shardingsphere.proxy.backend.response.error.ErrorResponse;
-import org.apache.shardingsphere.proxy.backend.response.query.QueryData;
-import org.apache.shardingsphere.proxy.backend.response.query.QueryResponse;
+import org.apache.shardingsphere.proxy.backend.response.header.ResponseHeader;
+import org.apache.shardingsphere.proxy.backend.response.header.query.QueryResponseHeader;
 import org.apache.shardingsphere.proxy.backend.text.TextProtocolBackendHandler;
 import org.apache.shardingsphere.proxy.backend.text.sctl.exception.InvalidShardingCTLFormatException;
 import org.apache.shardingsphere.proxy.backend.text.sctl.exception.UnsupportedShardingCTLTypeException;
@@ -33,6 +31,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Collection;
 import java.util.Optional;
 
 /**
@@ -52,24 +51,24 @@ public final class ShardingCTLShowBackendHandler implements TextProtocolBackendH
     }
     
     @Override
-    public BackendResponse execute() {
+    public ResponseHeader execute() {
         Optional<ShardingCTLShowStatement> showStatement = new ShardingCTLShowParser(sql).doParse();
         if (!showStatement.isPresent()) {
-            return new ErrorResponse(new InvalidShardingCTLFormatException(sql));
+            throw new InvalidShardingCTLFormatException(sql);
         }
         switch (showStatement.get().getValue()) {
             case "TRANSACTION_TYPE":
-                return createResponsePackets("TRANSACTION_TYPE", backendConnection.getTransactionType().name());
+                return createResponsePackets("TRANSACTION_TYPE", backendConnection.getTransactionStatus().getTransactionType().name());
             case "CACHED_CONNECTIONS":
                 return createResponsePackets("CACHED_CONNECTIONS", backendConnection.getConnectionSize());
             default:
-                return new ErrorResponse(new UnsupportedShardingCTLTypeException(sql));
+                throw new UnsupportedShardingCTLTypeException(sql);
         }
     }
     
-    private BackendResponse createResponsePackets(final String columnName, final Object... values) {
+    private ResponseHeader createResponsePackets(final String columnName, final Object... values) {
         mergedResult = new MultipleLocalDataMergedResult(Collections.singletonList(Arrays.asList(values)));
-        return new QueryResponse(Collections.singletonList(new QueryHeader("", "", columnName, columnName, 100, Types.VARCHAR, 0, false, false, false, false)));
+        return new QueryResponseHeader(Collections.singletonList(new QueryHeader("", "", columnName, columnName, Types.VARCHAR, "VARCHAR", 100, 0, false, false, false, false)));
     }
     
     @Override
@@ -78,7 +77,7 @@ public final class ShardingCTLShowBackendHandler implements TextProtocolBackendH
     }
     
     @Override
-    public QueryData getQueryData() throws SQLException {
-        return new QueryData(Collections.singletonList(Types.VARCHAR), Collections.singletonList(mergedResult.getValue(1, Object.class)));
+    public Collection<Object> getRowData() throws SQLException {
+        return Collections.singletonList(mergedResult.getValue(1, Object.class));
     }
 }

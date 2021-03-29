@@ -15,8 +15,8 @@
 # limitations under the License.
 #
 
-orchestration:
-  namespace: test_name_1
+governance:
+  name: test_name_1
   registryCenter:
     type: ZooKeeper
     serverLists: localhost:2181
@@ -26,8 +26,7 @@ authentication:
   users:
     root:
       password: root
-      authorizedSchemas: sharding_db,master_slave_db
 
 props:
-  max.connections.size.per.query: 1
-  sql.show: false
+  max-connections-size-per-query: 1
+  sql-show: false

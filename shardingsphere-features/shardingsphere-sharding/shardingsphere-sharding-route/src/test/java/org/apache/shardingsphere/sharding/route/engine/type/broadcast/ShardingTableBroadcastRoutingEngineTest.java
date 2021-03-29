@@ -18,100 +18,125 @@
 package org.apache.shardingsphere.sharding.route.engine.type.broadcast;
 
 import com.google.common.collect.Lists;
+import org.apache.shardingsphere.infra.binder.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.database.type.DatabaseType;
+import org.apache.shardingsphere.infra.metadata.schema.ShardingSphereSchema;
+import org.apache.shardingsphere.infra.route.context.RouteContext;
+import org.apache.shardingsphere.infra.route.context.RouteMapper;
+import org.apache.shardingsphere.infra.route.context.RouteUnit;
 import org.apache.shardingsphere.sharding.api.config.ShardingRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.rule.ShardingTableRuleConfiguration;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
-import org.apache.shardingsphere.sql.parser.binder.metadata.index.IndexMetaData;
-import org.apache.shardingsphere.sql.parser.binder.metadata.table.TableMetaData;
-import org.apache.shardingsphere.sql.parser.binder.metadata.schema.SchemaMetaData;
-import org.apache.shardingsphere.sql.parser.binder.segment.table.TablesContext;
-import org.apache.shardingsphere.sql.parser.binder.statement.SQLStatementContext;
-import org.apache.shardingsphere.sql.parser.sql.segment.ddl.index.IndexSegment;
-import org.apache.shardingsphere.sql.parser.sql.statement.ddl.DDLStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.ddl.DropIndexStatement;
-import org.apache.shardingsphere.sql.parser.sql.value.identifier.IdentifierValue;
-import org.apache.shardingsphere.infra.route.context.RouteResult;
-import org.apache.shardingsphere.infra.route.context.RouteUnit;
-import org.apache.shardingsphere.infra.route.context.RouteMapper;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.util.Arrays;
+import javax.sql.DataSource;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class ShardingTableBroadcastRoutingEngineTest {
     
-    @Mock
-    private SQLStatementContext sqlStatementContext;
-    
-    @Mock
-    private TablesContext tablesContext;
-    
-    @Mock
-    private SchemaMetaData schemaMetaData;
-    
-    @Mock
-    private TableMetaData tableMetaData;
-    
-    private ShardingTableBroadcastRoutingEngine tableBroadcastRoutingEngine;
+    private ShardingTableBroadcastRoutingEngine shardingTableBroadcastRoutingEngine;
     
     private ShardingRule shardingRule;
-    
-    @Before
-    public void setUp() {
-        ShardingTableRuleConfiguration tableRuleConfig = new ShardingTableRuleConfiguration("t_order", "ds${0..1}.t_order_${0..2}");
-        ShardingRuleConfiguration shardingRuleConfig = new ShardingRuleConfiguration();
-        shardingRuleConfig.getTables().add(tableRuleConfig);
-        when(sqlStatementContext.getTablesContext()).thenReturn(tablesContext);
-        when(tablesContext.getTableNames()).thenReturn(Lists.newArrayList("t_order"));
-        when(schemaMetaData.getAllTableNames()).thenReturn(Lists.newArrayList("t_order"));
-        when(schemaMetaData.get("t_order")).thenReturn(tableMetaData);
-        Map<String, IndexMetaData> indexMetaDataMap = new HashMap<>(1, 1);
-        indexMetaDataMap.put("index_name", new IndexMetaData("index_name"));
-        when(tableMetaData.getIndexes()).thenReturn(indexMetaDataMap);
-        tableBroadcastRoutingEngine = new ShardingTableBroadcastRoutingEngine(schemaMetaData, sqlStatementContext);
-        shardingRule = new ShardingRule(shardingRuleConfig, Arrays.asList("ds0", "ds1"));
+
+    private void setUp(final String sqlStateTableName, final boolean bContainBroadCastTable) {
+        shardingTableBroadcastRoutingEngine = new ShardingTableBroadcastRoutingEngine(mock(ShardingSphereSchema.class), mockSQLStatementContext(sqlStateTableName));
+        shardingRule = new ShardingRule(createShardingRuleConfiguration(bContainBroadCastTable), mock(DatabaseType.class), createDataSourceMap());
+    }
+
+    private SQLStatementContext<?> mockSQLStatementContext(final String sqlStateTableName) {
+        SQLStatementContext<?> result = mock(SQLStatementContext.class, RETURNS_DEEP_STUBS);
+        when(result.getTablesContext().getTableNames()).thenReturn(sqlStateTableName.isEmpty() ? Lists.newArrayList() : Lists.newArrayList(sqlStateTableName));
+        return result;
     }
     
+    private ShardingRuleConfiguration createShardingRuleConfiguration(final boolean bContainBroadCastTable) {
+        ShardingRuleConfiguration result = new ShardingRuleConfiguration();
+        result.getTables().add(new ShardingTableRuleConfiguration("t_order", "ds${0..1}.t_order_${0..2}"));
+        if (!bContainBroadCastTable) {
+            result.getBroadcastTables().add("t_order");
+        }
+        return result;
+    }
+    
+    private Map<String, DataSource> createDataSourceMap() {
+        Map<String, DataSource> result = new HashMap<>(2, 1);
+        result.put("ds0", mock(DataSource.class, RETURNS_DEEP_STUBS));
+        result.put("ds1", mock(DataSource.class, RETURNS_DEEP_STUBS));
+        return result;
+    }
+    
+    @Test
+    public void assertRouteForNormalDDLOfEmptyList() {
+        setUp("", true);
+        RouteContext routeContext = new RouteContext();
+        shardingTableBroadcastRoutingEngine.route(routeContext, shardingRule);
+        assertRouteContextOfEmptyList(routeContext);
+    }
+    
+    @Test
+    public void assertRouteForNonExistDropIndexOfEmptyList() {
+        setUp("", true);
+        RouteContext routeContext = new RouteContext();
+        shardingTableBroadcastRoutingEngine.route(routeContext, shardingRule);
+    }
+    
+    @Test
+    public void assertRouteForDropIndexOfEmptyList() {
+        setUp("", true);
+        RouteContext routeContext = new RouteContext();
+        shardingTableBroadcastRoutingEngine.route(routeContext, shardingRule);
+        assertRouteContextOfEmptyList(routeContext);
+    }
+
+    private void assertRouteUnitOfEmptyList(final RouteUnit routeUnit, final String dataSourceName, final String actualTableName) {
+        assertThat(routeUnit.getDataSourceMapper().getActualName(), is(dataSourceName));
+        assertThat(routeUnit.getTableMappers().size(), is(1));
+        assertThat(routeUnit.getTableMappers().iterator().next(), is(new RouteMapper("", actualTableName)));
+    }
+
+    private void assertRouteContextOfEmptyList(final RouteContext actual) {
+        assertThat(actual.getActualDataSourceNames().size(), is(2));
+        assertThat(actual.getRouteUnits().size(), is(2));
+        Iterator<RouteUnit> routeUnits = actual.getRouteUnits().iterator();
+        assertRouteUnitOfEmptyList(routeUnits.next(), "ds0", "");
+        assertRouteUnitOfEmptyList(routeUnits.next(), "ds1", "");
+    }
+
     @Test
     public void assertRouteForNormalDDL() {
-        DDLStatement ddlStatement = mock(DDLStatement.class);
-        when(sqlStatementContext.getSqlStatement()).thenReturn(ddlStatement);
-        RouteResult actual = tableBroadcastRoutingEngine.route(shardingRule);
-        assertRouteResult(actual);
+        setUp("t_order", true);
+        RouteContext routeContext = new RouteContext();
+        shardingTableBroadcastRoutingEngine.route(routeContext, shardingRule);
+        assertRouteContext(routeContext);
     }
-    
-    @Test(expected = IllegalStateException.class)
+
+    @Test
     public void assertRouteForNonExistDropIndex() {
-        DropIndexStatement indexStatement = mock(DropIndexStatement.class);
-        IndexSegment indexSegment = new IndexSegment(0, 0, new IdentifierValue("no_index"));
-        when(indexStatement.getIndexes()).thenReturn(Lists.newArrayList(indexSegment));
-        when(sqlStatementContext.getSqlStatement()).thenReturn(indexStatement);
-        tableBroadcastRoutingEngine.route(shardingRule);
+        setUp("t_order", true);
+        RouteContext routeContext = new RouteContext();
+        shardingTableBroadcastRoutingEngine.route(routeContext, shardingRule);
     }
-    
+
     @Test
     public void assertRouteForDropIndex() {
-        DropIndexStatement indexStatement = mock(DropIndexStatement.class);
-        IndexSegment indexSegment = new IndexSegment(0, 0, new IdentifierValue("index_name"));
-        when(indexStatement.getIndexes()).thenReturn(Lists.newArrayList(indexSegment));
-        when(sqlStatementContext.getSqlStatement()).thenReturn(indexStatement);
-        RouteResult actual = tableBroadcastRoutingEngine.route(shardingRule);
-        assertRouteResult(actual);
+        setUp("t_order", true);
+        RouteContext routeContext = new RouteContext();
+        shardingTableBroadcastRoutingEngine.route(routeContext, shardingRule);
+        assertRouteContext(routeContext);
     }
-    
-    private void assertRouteResult(final RouteResult actual) {
+
+    private void assertRouteContext(final RouteContext actual) {
         assertThat(actual.getActualDataSourceNames().size(), is(2));
         assertThat(actual.getRouteUnits().size(), is(6));
         Iterator<RouteUnit> routeUnits = actual.getRouteUnits().iterator();
@@ -122,10 +147,47 @@ public final class ShardingTableBroadcastRoutingEngineTest {
         assertRouteUnit(routeUnits.next(), "ds1", "t_order_1");
         assertRouteUnit(routeUnits.next(), "ds1", "t_order_2");
     }
-    
+
     private void assertRouteUnit(final RouteUnit routeUnit, final String dataSourceName, final String actualTableName) {
         assertThat(routeUnit.getDataSourceMapper().getActualName(), is(dataSourceName));
         assertThat(routeUnit.getTableMappers().size(), is(1));
         assertThat(routeUnit.getTableMappers().iterator().next(), is(new RouteMapper("t_order", actualTableName)));
+    }
+
+    @Test
+    public void assertRouteForNormalDDLNoContain() {
+        setUp("t_order", false);
+        RouteContext routeContext = new RouteContext();
+        shardingTableBroadcastRoutingEngine.route(routeContext, shardingRule);
+        assertRouteContextOfEmptyListNoContain(routeContext);
+    }
+
+    @Test
+    public void assertRouteForNonExistDropIndexNoContain() {
+        setUp("t_order", false);
+        RouteContext routeContext = new RouteContext();
+        shardingTableBroadcastRoutingEngine.route(routeContext, shardingRule);
+    }
+
+    @Test
+    public void assertRouteForDropIndexNoContain() {
+        setUp("t_order", false);
+        RouteContext routeContext = new RouteContext();
+        shardingTableBroadcastRoutingEngine.route(routeContext, shardingRule);
+        assertRouteContextOfEmptyListNoContain(routeContext);
+    }
+
+    private void assertRouteUnitOfEmptyListNoContain(final RouteUnit routeUnit, final String dataSourceName, final String actualTableName) {
+        assertThat(routeUnit.getDataSourceMapper().getActualName(), is(dataSourceName));
+        assertThat(routeUnit.getTableMappers().size(), is(1));
+        assertThat(routeUnit.getTableMappers().iterator().next(), is(new RouteMapper("t_order", actualTableName)));
+    }
+
+    private void assertRouteContextOfEmptyListNoContain(final RouteContext actual) {
+        assertThat(actual.getActualDataSourceNames().size(), is(2));
+        assertThat(actual.getRouteUnits().size(), is(2));
+        Iterator<RouteUnit> routeUnits = actual.getRouteUnits().iterator();
+        assertRouteUnitOfEmptyListNoContain(routeUnits.next(), "ds0", "t_order");
+        assertRouteUnitOfEmptyListNoContain(routeUnits.next(), "ds1", "t_order");
     }
 }

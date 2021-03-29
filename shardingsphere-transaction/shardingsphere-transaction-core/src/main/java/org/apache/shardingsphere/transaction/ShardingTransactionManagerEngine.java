@@ -18,6 +18,7 @@
 package org.apache.shardingsphere.transaction;
 
 import com.google.common.base.Preconditions;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shardingsphere.infra.database.type.DatabaseType;
 import org.apache.shardingsphere.transaction.core.ResourceDataSource;
@@ -28,7 +29,6 @@ import javax.sql.DataSource;
 import java.util.Collection;
 import java.util.EnumMap;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.ServiceLoader;
@@ -61,19 +61,16 @@ public final class ShardingTransactionManagerEngine {
      *
      * @param databaseType database type
      * @param dataSourceMap data source map
+     * @param xaTransactionMangerType XA transaction manger type
      */
-    public void init(final DatabaseType databaseType, final Map<String, DataSource> dataSourceMap) {
+    public void init(final DatabaseType databaseType, final Map<String, DataSource> dataSourceMap, final String xaTransactionMangerType) {
         for (Entry<TransactionType, ShardingTransactionManager> entry : transactionManagerMap.entrySet()) {
-            entry.getValue().init(databaseType, getResourceDataSources(dataSourceMap));
+            entry.getValue().init(databaseType, getResourceDataSources(dataSourceMap), xaTransactionMangerType);
         }
     }
     
     private Collection<ResourceDataSource> getResourceDataSources(final Map<String, DataSource> dataSourceMap) {
-        List<ResourceDataSource> result = new LinkedList<>();
-        for (Map.Entry<String, DataSource> entry : dataSourceMap.entrySet()) {
-            result.add(new ResourceDataSource(entry.getKey(), entry.getValue()));
-        }
-        return result;
+        return dataSourceMap.entrySet().stream().map(entry -> new ResourceDataSource(entry.getKey(), entry.getValue())).collect(Collectors.toCollection(LinkedList::new));
     }
     
     /**

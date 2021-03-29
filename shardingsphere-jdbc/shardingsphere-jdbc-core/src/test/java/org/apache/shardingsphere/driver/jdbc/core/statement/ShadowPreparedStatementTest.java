@@ -17,8 +17,7 @@
 
 package org.apache.shardingsphere.driver.jdbc.core.statement;
 
-import org.apache.shardingsphere.driver.common.base.AbstractShardingSphereDataSourceForShadowTest;
-import org.apache.shardingsphere.infra.database.type.DatabaseTypes;
+import org.apache.shardingsphere.driver.jdbc.base.AbstractShardingSphereDataSourceForShadowTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,7 +27,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -50,6 +48,8 @@ public final class ShadowPreparedStatementTest extends AbstractShardingSphereDat
     private static final String UPDATE_SQL = "UPDATE t_encrypt SET cipher_pwd = ? WHERE id = ?";
     
     private static final String SHADOW_UPDATE_SQL = "UPDATE t_encrypt SET cipher_pwd = ? WHERE id = ? AND shadow = ?";
+    
+    private static final String SHADOW_UPDATE_SQL_WITH_CONDITION = "UPDATE t_encrypt SET cipher_pwd = ? WHERE id = ? AND shadow = true";
     
     @Test
     public void assertInsertWithExecute() throws SQLException {
@@ -121,9 +121,20 @@ public final class ShadowPreparedStatementTest extends AbstractShardingSphereDat
         assertResultSet(true, 99, 1, "cipher_pwd");
     }
     
+    @Test
+    public void assertShadowUpdateConditionWithExecuteUpdate() throws SQLException {
+        int result;
+        try (PreparedStatement statement = getShadowDataSource().getConnection().prepareStatement(SHADOW_UPDATE_SQL_WITH_CONDITION)) {
+            statement.setString(1, "cipher_pwd");
+            statement.setInt(2, 99);
+            result = statement.executeUpdate();
+        }
+        assertThat(result, is(1));
+        assertResultSet(true, 99, 1, "cipher_pwd");
+    }
+    
     private void assertResultSet(final boolean isShadow, final int resultSetCount, final Object cipherPwd) throws SQLException {
-        final Map<String, DataSource> dataMaps = getDATABASE_TYPE_MAP().get(DatabaseTypes.getActualDatabaseType("H2"));
-        DataSource dataSource = isShadow ? dataMaps.get("jdbc_1") : dataMaps.get("jdbc_0");
+        DataSource dataSource = isShadow ? getActualDataSources().get("shadow_jdbc_1") : getActualDataSources().get("shadow_jdbc_0");
         try (Statement statement = dataSource.getConnection().createStatement()) {
             ResultSet resultSet = statement.executeQuery(SELECT_SQL);
             int count = 1;
@@ -136,8 +147,7 @@ public final class ShadowPreparedStatementTest extends AbstractShardingSphereDat
     }
     
     private void assertResultSet(final boolean isShadow, final int id, final int resultSetCount, final Object cipherPwd) throws SQLException {
-        final Map<String, DataSource> dataMaps = getDATABASE_TYPE_MAP().get(DatabaseTypes.getActualDatabaseType("H2"));
-        DataSource dataSource = isShadow ? dataMaps.get("jdbc_1") : dataMaps.get("jdbc_0");
+        DataSource dataSource = isShadow ? getActualDataSources().get("shadow_jdbc_1") : getActualDataSources().get("shadow_jdbc_0");
         try (PreparedStatement statement = dataSource.getConnection().prepareStatement(SELECT_SQL_BY_ID)) {
             statement.setObject(1, id);
             ResultSet resultSet = statement.executeQuery();

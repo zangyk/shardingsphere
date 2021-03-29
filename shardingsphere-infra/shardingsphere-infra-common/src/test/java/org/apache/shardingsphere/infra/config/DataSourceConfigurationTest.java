@@ -19,7 +19,11 @@ package org.apache.shardingsphere.infra.config;
 
 import com.zaxxer.hikari.HikariDataSource;
 import org.apache.commons.dbcp2.BasicDataSource;
+import org.apache.shardingsphere.infra.config.datasource.DataSourceConfiguration;
+import org.apache.shardingsphere.infra.config.exception.ShardingSphereConfigurationException;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -27,13 +31,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 
 public final class DataSourceConfigurationTest {
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
     
     @Test
     public void assertGetDataSourceConfiguration() throws SQLException {
@@ -54,7 +63,7 @@ public final class DataSourceConfigurationTest {
     
     @Test
     public void assertCreateDataSource() {
-        Map<String, Object> props = new HashMap<>();
+        Map<String, Object> props = new HashMap<>(16, 1);
         props.put("driverClassName", "org.h2.Driver");
         props.put("jdbcUrl", "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;MODE=MySQL");
         props.put("username", "root");
@@ -69,17 +78,32 @@ public final class DataSourceConfigurationTest {
         assertThat(actual.getUsername(), is("root"));
         assertThat(actual.getPassword(), is("root"));
     }
-
+    
     @Test
-    public void assertAddAlias() {
+    public void assertCreateDataSourcePasswordTypeMismatch() {
+        Map<String, Object> props = new HashMap<>(16, 1);
+        props.put("driverClassName", "org.h2.Driver");
+        props.put("jdbcUrl", "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;MODE=MySQL");
+        props.put("username", "root");
+        props.put("password", 123);
+        props.put("loginTimeout", "5000");
+        DataSourceConfiguration dataSourceConfig = new DataSourceConfiguration(HikariDataSource.class.getName());
+        dataSourceConfig.getProps().putAll(props);
+        thrown.expect(ShardingSphereConfigurationException.class);
+        thrown.expectMessage("Incorrect configuration item: the property password of the dataSource, because argument type mismatch");
+        HikariDataSource actual = (HikariDataSource) dataSourceConfig.createDataSource();
+    }
+    
+    @Test
+    public void assertAddSynonym() {
         HikariDataSource actualDataSource = new HikariDataSource();
         actualDataSource.setDriverClassName("org.h2.Driver");
         actualDataSource.setJdbcUrl("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;MODE=MySQL");
         actualDataSource.setUsername("root");
         actualDataSource.setPassword("root");
         DataSourceConfiguration actual = DataSourceConfiguration.getDataSourceConfiguration(actualDataSource);
-        actual.addAlias("url", "jdbcUrl");
-        actual.addAlias("user", "username");
+        actual.addPropertySynonym("url", "jdbcUrl");
+        actual.addPropertySynonym("user", "username");
         assertThat(actual.getDataSourceClassName(), is(HikariDataSource.class.getName()));
         assertThat(actual.getProps().get("driverClassName").toString(), is("org.h2.Driver"));
         assertThat(actual.getProps().get("jdbcUrl").toString(), is("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;MODE=MySQL"));
@@ -87,6 +111,59 @@ public final class DataSourceConfigurationTest {
         assertThat(actual.getProps().get("password").toString(), is("root"));
         assertThat(actual.getProps().get("jdbcUrl"), is(actual.getProps().get("url")));
         assertThat(actual.getProps().get("username"), is(actual.getProps().get("user")));
+    }
+    
+    @Test
+    public void assertEquals() {
+        DataSourceConfiguration originalDataSourceConfig = new DataSourceConfiguration(HikariDataSource.class.getName());
+        DataSourceConfiguration targetDataSourceConfig = new DataSourceConfiguration(HikariDataSource.class.getName());
+        assertThat(originalDataSourceConfig, is(originalDataSourceConfig));
+        assertThat(originalDataSourceConfig, is(targetDataSourceConfig));
+        originalDataSourceConfig.getProps().put("username", "root");
+        targetDataSourceConfig.getProps().put("username", "root");
+        assertThat(originalDataSourceConfig, is(targetDataSourceConfig));
+        targetDataSourceConfig.getProps().put("password", "root");
+        assertThat(originalDataSourceConfig, is(targetDataSourceConfig));
+    }
+    
+    @Test
+    public void assertNotEquals() {
+        DataSourceConfiguration originalDataSourceConfig = new DataSourceConfiguration(HikariDataSource.class.getName());
+        DataSourceConfiguration targetDataSourceConfig = new DataSourceConfiguration(HikariDataSource.class.getName());
+        originalDataSourceConfig.getProps().put("username", "root");
+        targetDataSourceConfig.getProps().put("username", "root0");
+        assertThat(originalDataSourceConfig, not(targetDataSourceConfig));
+    }
+    
+    @Test
+    public void assertEqualsWithNull() {
+        assertFalse(new DataSourceConfiguration(HikariDataSource.class.getName()).equals(null));
+    }
+    
+    @Test
+    public void assertSameHashCode() {
+        DataSourceConfiguration originalDataSourceConfig = new DataSourceConfiguration(HikariDataSource.class.getName());
+        DataSourceConfiguration targetDataSourceConfig = new DataSourceConfiguration(HikariDataSource.class.getName());
+        assertThat(originalDataSourceConfig.hashCode(), is(targetDataSourceConfig.hashCode()));
+        originalDataSourceConfig.getProps().put("username", "root");
+        targetDataSourceConfig.getProps().put("username", "root");
+        assertThat(originalDataSourceConfig.hashCode(), is(targetDataSourceConfig.hashCode()));
+        originalDataSourceConfig.getProps().put("password", "root");
+        targetDataSourceConfig.getProps().put("password", "root");
+        assertThat(originalDataSourceConfig.hashCode(), is(targetDataSourceConfig.hashCode()));
+    }
+    
+    @Test
+    public void assertDifferentHashCode() {
+        DataSourceConfiguration originalDataSourceConfig = new DataSourceConfiguration(HikariDataSource.class.getName());
+        DataSourceConfiguration targetDataSourceConfig = new DataSourceConfiguration(HikariDataSource.class.getName());
+        originalDataSourceConfig.getProps().put("username", "root");
+        targetDataSourceConfig.getProps().put("username", "root");
+        targetDataSourceConfig.getProps().put("password", "root");
+        assertThat(originalDataSourceConfig.hashCode(), not(targetDataSourceConfig.hashCode()));
+        originalDataSourceConfig = new DataSourceConfiguration(HikariDataSource.class.getName());
+        targetDataSourceConfig = new DataSourceConfiguration(BasicDataSource.class.getName());
+        assertThat(originalDataSourceConfig.hashCode(), not(targetDataSourceConfig.hashCode()));
     }
     
     @SuppressWarnings("unchecked")

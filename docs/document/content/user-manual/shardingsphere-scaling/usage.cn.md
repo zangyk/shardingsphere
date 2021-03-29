@@ -1,5 +1,5 @@
 +++
-pre = "<b>4.5.2. </b>"
+pre = "<b>4.4.2. </b>"
 title = "使用手册"
 weight = 2
 +++
@@ -8,7 +8,7 @@ weight = 2
 
 ### 环境要求
 
-纯JAVA开发，JDK建议1.8以上版本。
+纯 JAVA 开发，JDK 建议 1.8 以上版本。
 
 支持迁移场景如下：
 
@@ -19,12 +19,11 @@ weight = 2
 
 **注意**：
 
-如果后端连接MySQL数据库，需要下载[MySQL Connector/J](https://cdn.mysql.com//Downloads/Connector-J/mysql-connector-java-5.1.47.tar.gz)，
-解压缩后，将mysql-connector-java-5.1.47.jar拷贝到${shardingsphere-scaling}\lib目录。
+如果后端连接 MySQL 数据库，请下载 [mysql-connector-java-5.1.47.jar](https://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.47/mysql-connector-java-5.1.47.jar)，并将其放入 `${shardingsphere-scaling}\lib` 目录。
 
 ### 权限要求
 
-MySQL 需要开启`binlog`，`binlog format`为Row模式，且迁移时所使用用户需要赋予Replication相关权限。
+MySQL 需要开启 `binlog`，`binlog format` 为Row模式，且迁移时所使用用户需要赋予 Replication 相关权限。
 
 ```
 +-----------------------------------------+---------------------------------------+
@@ -42,49 +41,95 @@ MySQL 需要开启`binlog`，`binlog format`为Row模式，且迁移时所使用
 +------------------------------------------------------------------------------+
 ```
 
-PostgreSQL 需要开启[test_decoding](https://www.postgresql.org/docs/9.4/test-decoding.html)
+PostgreSQL 需要开启 [test_decoding](https://www.postgresql.org/docs/9.4/test-decoding.html)
 
 ### API接口
 
-弹性迁移组件提供了简单的HTTP API接口
+弹性迁移组件提供了简单的 HTTP API 接口
 
 #### 创建迁移任务
 
-接口描述：POST /shardingscaling/job/start
+接口描述：POST /scaling/job/start
 
 请求体：
 
-| Parameter                                         | Describe                                                     |
+| 参数                                               | 描述                                                         |
 | ------------------------------------------------- | ------------------------------------------------------------ |
-| ruleConfiguration.sourceDatasource                | 源端sharding sphere数据源相关配置                             |
-| ruleConfiguration.sourceRule                      | 源端sharding sphere表规则相关配置                             |
-| ruleConfiguration.destinationDataSources.name     | 目标端sharding proxy名称                                     |
-| ruleConfiguration.destinationDataSources.url      | 目标端sharding proxy jdbc url                                |
-| ruleConfiguration.destinationDataSources.username | 目标端sharding proxy用户名                                   |
-| ruleConfiguration.destinationDataSources.password | 目标端sharding proxy密码                                     |
+| ruleConfig.source                                 | 源端数据源相关配置                                             |
+| ruleConfig.target                                 | 目标端数据源相关配置                                           |
 | jobConfiguration.concurrency                      | 迁移并发度，举例：如果设置为3，则待迁移的表将会有三个线程同时对该表进行迁移，前提是该表有整数型主键 |
+
+数据源配置：
+
+| 参数                                               | 描述                                                         |
+| ------------------------------------------------- | ------------------------------------------------------------ |
+| type                                              | 数据源类型（可选参数：shardingSphereJdbc、jdbc）                |
+| parameter                                         | 数据源参数                                                    |
+
+*** 注意 ***
+
+当前 source type 必须是 shardingSphereJdbc
 
 示例：
 
 ```
 curl -X POST \
-  http://localhost:8888/shardingscaling/job/start \
+  http://localhost:8888/scaling/job/start \
   -H 'content-type: application/json' \
   -d '{
-   "ruleConfiguration": {
-      "sourceDatasource": "ds_0: !!YamlDataSourceConfiguration\n  dataSourceClassName: com.zaxxer.hikari.HikariDataSource\n  props:\n    jdbcUrl: jdbc:mysql://127.0.0.1:3306/test?serverTimezone=UTC&useSSL=false\n    username: root\n    password: '\''123456'\''\n    connectionTimeout: 30000\n    idleTimeout: 60000\n    maxLifetime: 1800000\n    maxPoolSize: 50\n    minPoolSize: 1\n    maintenanceIntervalMilliseconds: 30000\n    readOnly: false\n",
-      "sourceRule": "defaultDatabaseStrategy:\n  inline:\n    algorithmExpression: ds_${user_id % 2}\n    shardingColumn: user_id\ntables:\n  t1:\n    actualDataNodes: ds_0.t1\n    keyGenerateStrategy:\n      column: order_id\n      type: SNOWFLAKE\n    logicTable: t1\n    tableStrategy:\n      inline:\n        algorithmExpression: t1\n        shardingColumn: order_id\n  t2:\n    actualDataNodes: ds_0.t2\n    keyGenerateStrategy:\n      column: order_item_id\n      type: SNOWFLAKE\n    logicTable: t2\n    tableStrategy:\n      inline:\n        algorithmExpression: t2\n        shardingColumn: order_id\n",
-      "destinationDataSources": {
-         "name": "dt_0",
-         "password": "123456",
-         "url": "jdbc:mysql://127.0.0.1:3306/test2?serverTimezone=UTC&useSSL=false",
-         "username": "root"
-      }
-   },
-   "jobConfiguration": {
-      "concurrency": 3
-   }
-}'
+        "ruleConfig": {
+          "source": {
+            "type": "shardingSphereJdbc",
+            "parameter": "
+                dataSources:
+                  ds_0:
+                    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+                    jdbcUrl: jdbc:mysql://127.0.0.1:3306/scaling_0?useSSL=false
+                    username: scaling
+                    password: scaling
+                  ds_1:
+                    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+                    jdbcUrl: jdbc:mysql://127.0.0.1:3306/scaling_1?useSSL=false
+                    username: scaling
+                    password: scaling
+                rules:
+                - !SHARDING
+                  tables:
+                    t_order:
+                      actualDataNodes: ds_$->{0..1}.t_order_$->{0..1}
+                      databaseStrategy:
+                        standard:
+                          shardingColumn: order_id
+                          shardingAlgorithmName: t_order_db_algorith
+                      logicTable: t_order
+                      tableStrategy:
+                        standard:
+                          shardingColumn: user_id
+                          shardingAlgorithmName: t_order_tbl_algorith
+                  shardingAlgorithms:
+                    t_order_db_algorith:
+                      type: INLINE
+                      props:
+                        algorithm-expression: ds_$->{order_id % 2}
+                    t_order_tbl_algorith:
+                      type: INLINE
+                      props:
+                        algorithm-expression: t_order_$->{user_id % 2}
+                "
+          },
+          "target": {
+              "type": "jdbc",
+              "parameter": "
+                username: root
+                password: root
+                jdbcUrl: jdbc:mysql://127.0.0.1:3307/sharding_db?serverTimezone=UTC&useSSL=false
+                "
+          }
+        },
+        "jobConfiguration":{
+          "concurrency":"3"
+        }
+      }'
 ```
 
 返回信息：
@@ -100,12 +145,12 @@ curl -X POST \
 
 #### 查询迁移任务进度
 
-接口描述：GET /shardingscaling/job/progress/{jobId}
+接口描述：GET /scaling/job/progress/{jobId}
 
 示例：
 ```
 curl -X GET \
-  http://localhost:8888/shardingscaling/job/progress/1
+  http://localhost:8888/scaling/job/progress/1
 ```
 
 返回信息：
@@ -162,13 +207,13 @@ curl -X GET \
 
 #### 查询所有迁移任务
 
-接口描述：GET /shardingscaling/job/list
+接口描述：GET /scaling/job/list
 
 示例：
 
 ```
 curl -X GET \
-  http://localhost:8888/shardingscaling/job/list
+  http://localhost:8888/scaling/job/list
 ```
 
 返回信息：
@@ -189,22 +234,18 @@ curl -X GET \
 
 #### 停止迁移任务
 
-接口描述：POST /shardingscaling/job/stop
+接口描述：GET /scaling/job/stop
 
 请求体：
 
-| Parameter | Describe |
+| 参数      | 描述      |
 | --------- | -------- |
 | jobId     | job id   |
 
 示例：
 ```
-curl -X POST \
-  http://localhost:8888/shardingscaling/job/stop \
-  -H 'content-type: application/json' \
-  -d '{
-   "jobId":1
-}'
+curl -X GET \
+  http://localhost:8888/scaling/job/stop/1
 ```
 返回信息：
 ```
@@ -218,6 +259,6 @@ curl -X POST \
 
 ## 通过UI界面来操作
 
-ShardingSphere-Scaling与ShardingSphere-UI集成了用户界面，所以上述所有任务相关的操作都可以通过UI界面点点鼠标来实现，当然本质上还是调用了上述基本接口。
+ShardingSphere-Scaling 与 ShardingSphere-UI 集成了用户界面，所以上述所有任务相关的操作都可以通过 UI 界面点点鼠标来实现，当然本质上还是调用了上述基本接口。
 
-更多信息请参考ShardingSphere-UI项目。
+更多信息请参考 ShardingSphere-UI 项目。

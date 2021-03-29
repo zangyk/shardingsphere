@@ -16,7 +16,7 @@
  */
 
 /*
- * Please make sure master-slave data sync on MySQL is running correctly. Otherwise this example will query empty data from slave.
+ * Please make sure primary replica data replication sync on MySQL is running correctly. Otherwise this example will query empty data from replica.
  */
 
 package org.apache.shardingsphere.example.encrypt.table.raw.jdbc;
@@ -30,7 +30,7 @@ import org.apache.shardingsphere.example.encrypt.table.raw.jdbc.config.EncryptDa
 import javax.sql.DataSource;
 import java.sql.SQLException;
 
-public class JavaConfigurationExampleMain {
+public final class JavaConfigurationExampleMain {
     
     public static void main(final String[] args) throws SQLException {
         DataSource dataSource = new EncryptDatabasesConfiguration().getDataSource();

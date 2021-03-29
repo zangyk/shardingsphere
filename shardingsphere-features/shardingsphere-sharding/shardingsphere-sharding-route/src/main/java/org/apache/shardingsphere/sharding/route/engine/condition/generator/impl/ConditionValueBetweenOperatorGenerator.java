@@ -18,15 +18,16 @@
 package org.apache.shardingsphere.sharding.route.engine.condition.generator.impl;
 
 import com.google.common.collect.Range;
-import org.apache.shardingsphere.sharding.strategy.value.RangeRouteValue;
-import org.apache.shardingsphere.sharding.strategy.value.RouteValue;
+import org.apache.shardingsphere.infra.spi.required.RequiredSPIRegistry;
+import org.apache.shardingsphere.infra.datetime.DatetimeService;
 import org.apache.shardingsphere.sharding.route.engine.condition.Column;
 import org.apache.shardingsphere.sharding.route.engine.condition.ExpressionConditionUtils;
 import org.apache.shardingsphere.sharding.route.engine.condition.generator.ConditionValue;
 import org.apache.shardingsphere.sharding.route.engine.condition.generator.ConditionValueGenerator;
-import org.apache.shardingsphere.sharding.route.spi.SPITimeService;
-import org.apache.shardingsphere.sql.parser.sql.segment.dml.predicate.value.PredicateBetweenRightValue;
-import org.apache.shardingsphere.sql.parser.sql.util.SafeRangeOperationUtils;
+import org.apache.shardingsphere.sharding.route.engine.condition.value.RangeShardingConditionValue;
+import org.apache.shardingsphere.sharding.route.engine.condition.value.ShardingConditionValue;
+import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.expr.BetweenExpression;
+import org.apache.shardingsphere.sql.parser.sql.common.util.SafeNumberOperationUtils;
 
 import java.util.Date;
 import java.util.List;
@@ -35,24 +36,24 @@ import java.util.Optional;
 /**
  * Condition value generator for between operator.
  */
-public final class ConditionValueBetweenOperatorGenerator implements ConditionValueGenerator<PredicateBetweenRightValue> {
+public final class ConditionValueBetweenOperatorGenerator implements ConditionValueGenerator<BetweenExpression> {
     
     @Override
-    public Optional<RouteValue> generate(final PredicateBetweenRightValue predicateRightValue, final Column column, final List<Object> parameters) {
-        Optional<Comparable> betweenRouteValue = new ConditionValue(predicateRightValue.getBetweenExpression(), parameters).getValue();
-        Optional<Comparable> andRouteValue = new ConditionValue(predicateRightValue.getAndExpression(), parameters).getValue();
-        if (betweenRouteValue.isPresent() && andRouteValue.isPresent()) {
-            return Optional.of(new RangeRouteValue<>(column.getName(), column.getTableName(), SafeRangeOperationUtils.safeClosed(betweenRouteValue.get(), andRouteValue.get())));
+    public Optional<ShardingConditionValue> generate(final BetweenExpression predicate, final Column column, final List<Object> parameters) {
+        Optional<Comparable<?>> betweenConditionValue = new ConditionValue(predicate.getBetweenExpr(), parameters).getValue();
+        Optional<Comparable<?>> andConditionValue = new ConditionValue(predicate.getAndExpr(), parameters).getValue();
+        if (betweenConditionValue.isPresent() && andConditionValue.isPresent()) {
+            return Optional.of(new RangeShardingConditionValue<>(column.getName(), column.getTableName(), SafeNumberOperationUtils.safeClosed(betweenConditionValue.get(), andConditionValue.get())));
         }
-        Date date = new SPITimeService().getTime();
-        if (!betweenRouteValue.isPresent() && ExpressionConditionUtils.isNowExpression(predicateRightValue.getBetweenExpression())) {
-            betweenRouteValue = Optional.of(date);
+        Date datetime = RequiredSPIRegistry.getRegisteredService(DatetimeService.class).getDatetime();
+        if (!betweenConditionValue.isPresent() && ExpressionConditionUtils.isNowExpression(predicate.getBetweenExpr())) {
+            betweenConditionValue = Optional.of(datetime);
         }
-        if (!andRouteValue.isPresent() && ExpressionConditionUtils.isNowExpression(predicateRightValue.getAndExpression())) {
-            andRouteValue = Optional.of(date);
+        if (!andConditionValue.isPresent() && ExpressionConditionUtils.isNowExpression(predicate.getAndExpr())) {
+            andConditionValue = Optional.of(datetime);
         }
-        return betweenRouteValue.isPresent() && andRouteValue.isPresent()
-                ? Optional.of(new RangeRouteValue<>(column.getName(), column.getTableName(), Range.closed(betweenRouteValue.get(), andRouteValue.get())))
+        return betweenConditionValue.isPresent() && andConditionValue.isPresent()
+                ? Optional.of(new RangeShardingConditionValue<>(column.getName(), column.getTableName(), Range.closed(betweenConditionValue.get(), andConditionValue.get())))
                 : Optional.empty();
     }
 }

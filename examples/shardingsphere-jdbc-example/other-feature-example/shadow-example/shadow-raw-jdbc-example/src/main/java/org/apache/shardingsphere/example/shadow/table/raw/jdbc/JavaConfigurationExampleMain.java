@@ -16,7 +16,7 @@
  */
 
 /*
- * Please make sure master-slave data sync on MySQL is running correctly. Otherwise this example will query empty data from slave.
+ * Please make sure primary replica data replication sync on MySQL is running correctly. Otherwise this example will query empty data from replica.
  */
 
 package org.apache.shardingsphere.example.shadow.table.raw.jdbc;
@@ -31,10 +31,10 @@ import org.apache.shardingsphere.example.type.ShardingType;
 import javax.sql.DataSource;
 import java.sql.SQLException;
 
-public class JavaConfigurationExampleMain {
+public final class JavaConfigurationExampleMain {
     
     private static ShardingType shardingType = ShardingType.SHADOW;
-//    private static ShardingType shardingType = ShardingType.MASTER_SLAVE_SHADOW;
+//    private static ShardingType shardingType = ShardingType.READ_WRITE_SPLITTING_SHADOW;
 //    private static ShardingType shardingType = ShardingType.ENCRYPT_SHADOW;
 //    private static ShardingType shardingType = ShardingType.SHARDING_SHADOW_DATABASES;
     

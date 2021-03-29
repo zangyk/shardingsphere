@@ -22,11 +22,11 @@ import com.google.common.collect.Maps;
 import org.apache.shardingsphere.sharding.merge.dql.groupby.aggregation.AggregationUnit;
 import org.apache.shardingsphere.sharding.merge.dql.groupby.aggregation.AggregationUnitFactory;
 import org.apache.shardingsphere.sharding.merge.dql.orderby.OrderByStreamMergedResult;
-import org.apache.shardingsphere.sql.parser.binder.metadata.schema.SchemaMetaData;
-import org.apache.shardingsphere.sql.parser.binder.segment.select.projection.impl.AggregationDistinctProjection;
-import org.apache.shardingsphere.sql.parser.binder.segment.select.projection.impl.AggregationProjection;
-import org.apache.shardingsphere.sql.parser.binder.statement.dml.SelectStatementContext;
-import org.apache.shardingsphere.infra.executor.sql.QueryResult;
+import org.apache.shardingsphere.infra.metadata.schema.ShardingSphereSchema;
+import org.apache.shardingsphere.infra.binder.segment.select.projection.impl.AggregationDistinctProjection;
+import org.apache.shardingsphere.infra.binder.segment.select.projection.impl.AggregationProjection;
+import org.apache.shardingsphere.infra.binder.statement.dml.SelectStatementContext;
+import org.apache.shardingsphere.infra.executor.sql.execute.result.query.QueryResult;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -48,8 +48,8 @@ public final class GroupByStreamMergedResult extends OrderByStreamMergedResult {
     private List<?> currentGroupByValues;
     
     public GroupByStreamMergedResult(final Map<String, Integer> labelAndIndexMap, final List<QueryResult> queryResults,
-                                     final SelectStatementContext selectStatementContext, final SchemaMetaData schemaMetaData) throws SQLException {
-        super(queryResults, selectStatementContext, schemaMetaData);
+                                     final SelectStatementContext selectStatementContext, final ShardingSphereSchema schema) throws SQLException {
+        super(queryResults, selectStatementContext, schema);
         this.selectStatementContext = selectStatementContext;
         currentRow = new ArrayList<>(labelAndIndexMap.size());
         currentGroupByValues = getOrderByValuesQueue().isEmpty()
@@ -102,7 +102,7 @@ public final class GroupByStreamMergedResult extends OrderByStreamMergedResult {
     }
     
     private void cacheCurrentRow() throws SQLException {
-        for (int i = 0; i < getCurrentQueryResult().getColumnCount(); i++) {
+        for (int i = 0; i < getCurrentQueryResult().getMetaData().getColumnCount(); i++) {
             currentRow.add(getCurrentQueryResult().getValue(i + 1, Object.class));
         }
     }

@@ -19,6 +19,9 @@ package org.apache.shardingsphere.infra.hint;
 
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -43,7 +46,8 @@ public final class HintManagerTest {
             hintManager.setDatabaseShardingValue(3);
             assertTrue(HintManager.isDatabaseShardingOnly());
             assertThat(HintManager.getDatabaseShardingValues("").size(), is(1));
-            assertTrue(HintManager.getDatabaseShardingValues("").contains(3));
+            List<Comparable<?>> shardingValues = new ArrayList<>(HintManager.getDatabaseShardingValues(""));
+            assertThat(shardingValues.get(0), is(3));
         }
     }
     
@@ -53,8 +57,9 @@ public final class HintManagerTest {
             hintManager.addDatabaseShardingValue("logicTable", 1);
             hintManager.addDatabaseShardingValue("logicTable", 3);
             assertThat(HintManager.getDatabaseShardingValues("logicTable").size(), is(2));
-            assertTrue(HintManager.getDatabaseShardingValues("logicTable").contains(1));
-            assertTrue(HintManager.getDatabaseShardingValues("logicTable").contains(3));
+            List<Comparable<?>> shardingValues = new ArrayList<>(HintManager.getDatabaseShardingValues("logicTable"));
+            assertThat(shardingValues.get(0), is(1));
+            assertThat(shardingValues.get(1), is(3));
         }
     }
     
@@ -64,8 +69,9 @@ public final class HintManagerTest {
             hintManager.addTableShardingValue("logicTable", 1);
             hintManager.addTableShardingValue("logicTable", 3);
             assertThat(HintManager.getTableShardingValues("logicTable").size(), is(2));
-            assertTrue(HintManager.getTableShardingValues("logicTable").contains(1));
-            assertTrue(HintManager.getTableShardingValues("logicTable").contains(3));
+            List<Comparable<?>> shardingValues = new ArrayList<>(HintManager.getTableShardingValues("logicTable"));
+            assertThat(shardingValues.get(0), is(1));
+            assertThat(shardingValues.get(1), is(3));
         }
     }
     
@@ -74,7 +80,8 @@ public final class HintManagerTest {
         try (HintManager hintManager = HintManager.getInstance()) {
             hintManager.setDatabaseShardingValue(1);
             assertThat(HintManager.getDatabaseShardingValues().size(), is(1));
-            assertTrue(HintManager.getDatabaseShardingValues().contains(1));
+            List<Comparable<?>> shardingValues = new ArrayList<>(HintManager.getDatabaseShardingValues());
+            assertThat(shardingValues.get(0), is(1));
         }
     }
     
@@ -83,7 +90,8 @@ public final class HintManagerTest {
         try (HintManager hintManager = HintManager.getInstance()) {
             hintManager.addDatabaseShardingValue("logic_table", 1);
             assertThat(HintManager.getDatabaseShardingValues("logic_table").size(), is(1));
-            assertTrue(HintManager.getDatabaseShardingValues("logic_table").contains(1));
+            List<Comparable<?>> shardingValues = new ArrayList<>(HintManager.getDatabaseShardingValues("logic_table"));
+            assertThat(shardingValues.get(0), is(1));
         }
     }
     
@@ -92,7 +100,8 @@ public final class HintManagerTest {
         try (HintManager hintManager = HintManager.getInstance()) {
             hintManager.addTableShardingValue("logic_table", 1);
             assertThat(HintManager.getTableShardingValues("logic_table").size(), is(1));
-            assertTrue(HintManager.getTableShardingValues("logic_table").contains(1));
+            List<Comparable<?>> shardingValues = new ArrayList<>(HintManager.getTableShardingValues("logic_table"));
+            assertThat(shardingValues.get(0), is(1));
         }
     }
     
@@ -112,26 +121,52 @@ public final class HintManagerTest {
     }
     
     @Test
-    public void assertSetMasterRouteOnly() {
+    public void assertAddDatabaseShardingValueOnlyDatabaseSharding() {
         try (HintManager hintManager = HintManager.getInstance()) {
-            hintManager.setMasterRouteOnly();
-            assertTrue(HintManager.isMasterRouteOnly());
+            hintManager.setDatabaseShardingValue(1);
+            assertTrue(HintManager.isDatabaseShardingOnly());
+            hintManager.addDatabaseShardingValue("logic_table", 2);
+            assertFalse(HintManager.isDatabaseShardingOnly());
+            assertThat(HintManager.getDatabaseShardingValues("logic_table").size(), is(1));
+            List<Comparable<?>> shardingValues = new ArrayList<>(HintManager.getDatabaseShardingValues("logic_table"));
+            assertThat(shardingValues.get(0), is(2));
         }
     }
     
     @Test
-    public void assertIsMasterRouteOnly() {
+    public void assertAddTableShardingValueOnlyDatabaseSharding() {
         try (HintManager hintManager = HintManager.getInstance()) {
-            hintManager.setMasterRouteOnly();
-            assertTrue(HintManager.isMasterRouteOnly());
+            hintManager.setDatabaseShardingValue(1);
+            assertTrue(HintManager.isDatabaseShardingOnly());
+            hintManager.addTableShardingValue("logic_table", 2);
+            assertFalse(HintManager.isDatabaseShardingOnly());
+            assertThat(HintManager.getTableShardingValues("logic_table").size(), is(1));
+            List<Comparable<?>> shardingValues = new ArrayList<>(HintManager.getTableShardingValues("logic_table"));
+            assertThat(shardingValues.get(0), is(2));
         }
     }
     
     @Test
-    public void assertIsMasterRouteOnlyWithoutSet() {
+    public void assertSetPrimaryRouteOnly() {
+        try (HintManager hintManager = HintManager.getInstance()) {
+            hintManager.setWriteRouteOnly();
+            assertTrue(HintManager.isWriteRouteOnly());
+        }
+    }
+    
+    @Test
+    public void assertIsPrimaryRouteOnly() {
+        try (HintManager hintManager = HintManager.getInstance()) {
+            hintManager.setWriteRouteOnly();
+            assertTrue(HintManager.isWriteRouteOnly());
+        }
+    }
+    
+    @Test
+    public void assertIsPrimaryRouteOnlyWithoutSet() {
         HintManager hintManager = HintManager.getInstance();
         hintManager.close();
-        assertFalse(HintManager.isMasterRouteOnly());
+        assertFalse(HintManager.isWriteRouteOnly());
     }
     
     @Test
@@ -144,3 +179,5 @@ public final class HintManagerTest {
         assertTrue(HintManager.getTableShardingValues("logic_table").isEmpty());
     }
 }
+
+

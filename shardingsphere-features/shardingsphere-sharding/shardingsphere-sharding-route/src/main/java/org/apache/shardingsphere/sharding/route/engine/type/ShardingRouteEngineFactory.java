@@ -19,6 +19,9 @@ package org.apache.shardingsphere.sharding.route.engine.type;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.apache.shardingsphere.infra.binder.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.binder.statement.dml.SelectStatementContext;
+import org.apache.shardingsphere.infra.binder.type.TableAvailable;
 import org.apache.shardingsphere.infra.config.properties.ConfigurationProperties;
 import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
 import org.apache.shardingsphere.sharding.route.engine.condition.ShardingConditions;
@@ -28,27 +31,30 @@ import org.apache.shardingsphere.sharding.route.engine.type.broadcast.ShardingIn
 import org.apache.shardingsphere.sharding.route.engine.type.broadcast.ShardingTableBroadcastRoutingEngine;
 import org.apache.shardingsphere.sharding.route.engine.type.complex.ShardingComplexRoutingEngine;
 import org.apache.shardingsphere.sharding.route.engine.type.ignore.ShardingIgnoreRoutingEngine;
+import org.apache.shardingsphere.sharding.route.engine.type.federated.ShardingFederatedRoutingEngine;
+import org.apache.shardingsphere.sharding.route.engine.type.single.SingleTablesRoutingEngine;
 import org.apache.shardingsphere.sharding.route.engine.type.standard.ShardingStandardRoutingEngine;
-import org.apache.shardingsphere.sharding.route.engine.type.unconfigured.ShardingUnconfiguredTablesRoutingEngine;
 import org.apache.shardingsphere.sharding.route.engine.type.unicast.ShardingUnicastRoutingEngine;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
-import org.apache.shardingsphere.sql.parser.binder.metadata.schema.SchemaMetaData;
-import org.apache.shardingsphere.sql.parser.binder.statement.SQLStatementContext;
-import org.apache.shardingsphere.sql.parser.binder.type.TableAvailable;
-import org.apache.shardingsphere.sql.parser.sql.statement.SQLStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.dal.DALStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.dal.SetStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.dal.dialect.mysql.ShowDatabasesStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.dal.dialect.mysql.UseStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.dal.dialect.postgresql.ResetParameterStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.dcl.DCLStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.ddl.DDLStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.dml.DMLStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.dml.SelectStatement;
-import org.apache.shardingsphere.sql.parser.sql.statement.tcl.TCLStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.dal.DALStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.dal.SetStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.dcl.DCLStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.ddl.AlterFunctionStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.ddl.AlterProcedureStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.ddl.CreateFunctionStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.ddl.CreateProcedureStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.ddl.DDLStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.ddl.DropFunctionStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.ddl.DropProcedureStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.DMLStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.tcl.TCLStatement;
+import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dal.MySQLShowDatabasesStatement;
+import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dal.MySQLUseStatement;
+import org.apache.shardingsphere.sql.parser.sql.dialect.statement.postgresql.dal.PostgreSQLResetParameterStatement;
 
 import java.util.Collection;
-import java.util.Map;
 
 /**
  * Sharding routing engine factory.
@@ -58,52 +64,56 @@ public final class ShardingRouteEngineFactory {
     
     /**
      * Create new instance of routing engine.
-     * 
+     *
      * @param shardingRule sharding rule
-     * @param metaData meta data of ShardingSphere
+     * @param metaData ShardingSphere metaData
      * @param sqlStatementContext SQL statement context
      * @param shardingConditions shardingConditions
      * @param props ShardingSphere properties
      * @return new instance of routing engine
      */
-    public static ShardingRouteEngine newInstance(final ShardingRule shardingRule, final ShardingSphereMetaData metaData, 
-                                                  final SQLStatementContext sqlStatementContext, final ShardingConditions shardingConditions, final ConfigurationProperties props) {
+    public static ShardingRouteEngine newInstance(final ShardingRule shardingRule, final ShardingSphereMetaData metaData,
+                                                  final SQLStatementContext<?> sqlStatementContext, final ShardingConditions shardingConditions, final ConfigurationProperties props) {
         SQLStatement sqlStatement = sqlStatementContext.getSqlStatement();
         Collection<String> tableNames = sqlStatementContext.getTablesContext().getTableNames();
         if (sqlStatement instanceof TCLStatement) {
             return new ShardingDatabaseBroadcastRoutingEngine();
         }
         if (sqlStatement instanceof DDLStatement) {
-            return new ShardingTableBroadcastRoutingEngine(metaData.getSchema().getConfiguredSchemaMetaData(), sqlStatementContext);
+            return getDDLRoutingEngine(shardingRule, metaData, sqlStatementContext);
         }
         if (sqlStatement instanceof DALStatement) {
-            return getDALRoutingEngine(shardingRule, metaData.getSchema().getUnconfiguredSchemaMetaDataMap(), sqlStatement, tableNames);
+            return getDALRoutingEngine(shardingRule, sqlStatement, tableNames);
         }
         if (sqlStatement instanceof DCLStatement) {
-            return getDCLRoutingEngine(sqlStatementContext, metaData);
+            return getDCLRoutingEngine(shardingRule, metaData, sqlStatementContext);
         }
-        if (shardingRule.isAllBroadcastTables(tableNames)) {
-            return sqlStatement instanceof SelectStatement ? new ShardingUnicastRoutingEngine(tableNames) : new ShardingDatabaseBroadcastRoutingEngine();
-        }
-        if (sqlStatementContext.getSqlStatement() instanceof DMLStatement && shardingConditions.isAlwaysFalse() || tableNames.isEmpty()) {
-            return new ShardingUnicastRoutingEngine(tableNames);
-        }
-        if (!shardingRule.tableRuleExists(tableNames)) {
-            return new ShardingUnconfiguredTablesRoutingEngine(tableNames, metaData.getSchema().getUnconfiguredSchemaMetaDataMap());
-        }
-        return getShardingRoutingEngine(shardingRule, shardingConditions, tableNames, props);
+        return getDQLRoutingEngine(shardingRule, sqlStatementContext, shardingConditions, props, sqlStatement, tableNames);
     }
     
-    private static ShardingRouteEngine getDALRoutingEngine(final ShardingRule shardingRule, 
-                                                           final Map<String, SchemaMetaData> unconfiguredSchemaMetaDataMap, final SQLStatement sqlStatement, final Collection<String> tableNames) {
-        if (sqlStatement instanceof UseStatement) {
+    private static ShardingRouteEngine getDDLRoutingEngine(final ShardingRule shardingRule, final ShardingSphereMetaData metaData, final SQLStatementContext<?> sqlStatementContext) {
+        SQLStatement sqlStatement = sqlStatementContext.getSqlStatement();
+        boolean functionStatement = sqlStatement instanceof CreateFunctionStatement || sqlStatement instanceof AlterFunctionStatement || sqlStatement instanceof DropFunctionStatement;
+        boolean procedureStatement = sqlStatement instanceof CreateProcedureStatement || sqlStatement instanceof AlterProcedureStatement || sqlStatement instanceof DropProcedureStatement;
+        if (functionStatement || procedureStatement) {
+            return new ShardingDatabaseBroadcastRoutingEngine();
+        }
+        Collection<String> tableNames = sqlStatementContext.getTablesContext().getTableNames();
+        if (!tableNames.isEmpty() && !shardingRule.tableRuleExists(tableNames)) {
+            return new SingleTablesRoutingEngine(tableNames, sqlStatement);
+        }
+        return new ShardingTableBroadcastRoutingEngine(metaData.getSchema(), sqlStatementContext);
+    }
+    
+    private static ShardingRouteEngine getDALRoutingEngine(final ShardingRule shardingRule, final SQLStatement sqlStatement, final Collection<String> tableNames) {
+        if (sqlStatement instanceof MySQLUseStatement) {
             return new ShardingIgnoreRoutingEngine();
         }
-        if (sqlStatement instanceof SetStatement || sqlStatement instanceof ResetParameterStatement || sqlStatement instanceof ShowDatabasesStatement) {
+        if (sqlStatement instanceof SetStatement || sqlStatement instanceof PostgreSQLResetParameterStatement || sqlStatement instanceof MySQLShowDatabasesStatement) {
             return new ShardingDatabaseBroadcastRoutingEngine();
         }
         if (!tableNames.isEmpty() && !shardingRule.tableRuleExists(tableNames)) {
-            return new ShardingUnconfiguredTablesRoutingEngine(tableNames, unconfiguredSchemaMetaDataMap);
+            return new SingleTablesRoutingEngine(tableNames, sqlStatement);
         }
         if (!tableNames.isEmpty()) {
             return new ShardingUnicastRoutingEngine(tableNames);
@@ -111,13 +121,18 @@ public final class ShardingRouteEngineFactory {
         return new ShardingDataSourceGroupBroadcastRoutingEngine();
     }
     
-    private static ShardingRouteEngine getDCLRoutingEngine(final SQLStatementContext sqlStatementContext, final ShardingSphereMetaData metaData) {
-        return isDCLForSingleTable(sqlStatementContext) 
-                ? new ShardingTableBroadcastRoutingEngine(metaData.getSchema().getConfiguredSchemaMetaData(), sqlStatementContext)
-                : new ShardingInstanceBroadcastRoutingEngine(metaData.getDataSources());
+    private static ShardingRouteEngine getDCLRoutingEngine(final ShardingRule shardingRule, final ShardingSphereMetaData metaData, final SQLStatementContext<?> sqlStatementContext) {
+        if (isDCLForSingleTable(sqlStatementContext)) {
+            Collection<String> tableNames = sqlStatementContext.getTablesContext().getTableNames();
+            return shardingRule.tableRuleExists(tableNames)
+                    ? new ShardingTableBroadcastRoutingEngine(metaData.getSchema(), sqlStatementContext)
+                    : new SingleTablesRoutingEngine(tableNames, sqlStatementContext.getSqlStatement());
+        } else {
+            return new ShardingInstanceBroadcastRoutingEngine(metaData.getResource().getDataSourcesMetaData());
+        }
     }
     
-    private static boolean isDCLForSingleTable(final SQLStatementContext sqlStatementContext) {
+    private static boolean isDCLForSingleTable(final SQLStatementContext<?> sqlStatementContext) {
         if (sqlStatementContext instanceof TableAvailable) {
             TableAvailable tableSegmentsAvailable = (TableAvailable) sqlStatementContext;
             return 1 == tableSegmentsAvailable.getAllTables().size() && !"*".equals(tableSegmentsAvailable.getAllTables().iterator().next().getTableName().getIdentifier().getValue());
@@ -125,13 +140,36 @@ public final class ShardingRouteEngineFactory {
         return false;
     }
     
-    private static ShardingRouteEngine getShardingRoutingEngine(final ShardingRule shardingRule, final ShardingConditions shardingConditions, 
-                                                                final Collection<String> tableNames, final ConfigurationProperties props) {
-        Collection<String> shardingTableNames = shardingRule.getShardingLogicTableNames(tableNames);
-        if (1 == shardingTableNames.size() || shardingRule.isAllBindingTables(shardingTableNames)) {
-            return new ShardingStandardRoutingEngine(shardingTableNames.iterator().next(), shardingConditions, props);
+    private static ShardingRouteEngine getDQLRoutingEngine(final ShardingRule shardingRule, final SQLStatementContext<?> sqlStatementContext,
+                                                           final ShardingConditions shardingConditions, final ConfigurationProperties props,
+                                                           final SQLStatement sqlStatement, final Collection<String> tableNames) {
+        if (shardingRule.isAllBroadcastTables(tableNames)) {
+            return sqlStatement instanceof SelectStatement ? new ShardingUnicastRoutingEngine(tableNames) : new ShardingDatabaseBroadcastRoutingEngine();
+        }
+        if (sqlStatementContext.getSqlStatement() instanceof DMLStatement && shardingConditions.isAlwaysFalse() || tableNames.isEmpty()) {
+            return new ShardingUnicastRoutingEngine(tableNames);
+        }
+        if (!shardingRule.tableRuleExists(tableNames)) {
+            return new SingleTablesRoutingEngine(tableNames, sqlStatement);
+        }
+        if (shardingRule.isAllShardingTables(tableNames) && 1 == tableNames.size() || shardingRule.isAllBindingTables(tableNames)) {
+            return new ShardingStandardRoutingEngine(tableNames.iterator().next(), shardingConditions, props);
+        }
+        if (isShardingFederatedQuery(sqlStatementContext, tableNames, shardingRule)) {
+            return new ShardingFederatedRoutingEngine(tableNames);
         }
         // TODO config for cartesian set
         return new ShardingComplexRoutingEngine(tableNames, shardingConditions, props);
+    }
+    
+    private static boolean isShardingFederatedQuery(final SQLStatementContext<?> sqlStatementContext, final Collection<String> tableNames, final ShardingRule shardingRule) {
+        if (!(sqlStatementContext instanceof SelectStatementContext)) {
+            return false;
+        }
+        SelectStatementContext select = (SelectStatementContext) sqlStatementContext;
+        if (!select.isContainsJoinQuery() && !select.isContainsSubquery()) {
+            return false;
+        }
+        return shardingRule.isAllShardingTables(tableNames) || (shardingRule.tableRuleExists(tableNames) && shardingRule.singleTableRuleExists(tableNames));
     }
 }

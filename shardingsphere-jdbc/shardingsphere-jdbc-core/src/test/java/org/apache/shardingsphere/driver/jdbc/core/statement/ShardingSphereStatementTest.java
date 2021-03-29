@@ -17,7 +17,7 @@
 
 package org.apache.shardingsphere.driver.jdbc.core.statement;
 
-import org.apache.shardingsphere.driver.common.base.AbstractShardingSphereDataSourceForShardingTest;
+import org.apache.shardingsphere.driver.jdbc.base.AbstractShardingSphereDataSourceForShardingTest;
 import org.junit.Test;
 
 import java.sql.Connection;
@@ -33,10 +33,9 @@ import static org.junit.Assert.assertTrue;
 
 public final class ShardingSphereStatementTest extends AbstractShardingSphereDataSourceForShardingTest {
     
-    private final String sql = "INSERT INTO t_order_item(order_id, user_id, status) VALUES (%d, %d, '%s')";
-    
     @Test
     public void assertGetGeneratedKeys() throws SQLException {
+        String sql = "INSERT INTO t_order_item(order_id, user_id, status) VALUES (%d, %d, '%s')";
         try (
                 Connection connection = getShardingSphereDataSource().getConnection();
                 Statement statement = connection.createStatement()) {

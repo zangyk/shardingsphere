@@ -21,40 +21,31 @@ chapter = true
 | SQLServerDatabaseType  | SQLServer database      |
 | H2DatabaseType         | H2 database             |
 
-## RuleMetaDataLoader
+## DialectTableMetaDataLoader
 
-| *SPI Name*             | *Description*                           |
-| ---------------------- | --------------------------------------- |
-| RuleMetaDataLoader     | Used to initialize meta data            |
+| *SPI Name*                   | *Description*                             |
+| ---------------------------- | ----------------------------------------- |
+| DialectTableMetaDataLoader   | Use SQL dialect to load meta data rapidly |
 
-| *Implementation Class* | *Description*                           |
-| ---------------------- | --------------------------------------- |
-| ShardingMetaDataLoader | Used to initialize sharding meta data   |
-| EncryptMetaDataLoader  | Used to initialize encryption meta data |
+| *Implementation Class*       | *Description*                             |
+| ---------------------------- | ----------------------------------------- |
+| MySQLTableMetaDataLoader     | Use MySQL dialect to load meta data       |
+| OracleTableMetaDataLoader    | Use Oracle dialect to load meta data      |
+| PostgreSQLTableMetaDataLoader| Use PostgreSQL dialect to load meta data  |
+| SQLServerTableMetaDataLoader | Use SQLServer dialect to load meta data   |
+| H2TableMetaDataLoader        | Use H2 dialect to load meta data          |
 
-## RuleMetaDataDecorator
+## SQLRouter
 
-| *SPI Name*                | *Description*                        |
-| ------------------------- | ------------------------------------ |
-| RuleMetaDataDecorator     | Used to update meta data             |
+| *SPI Name*                    | *Description*                                         |
+| ----------------------------- | ----------------------------------------------------- |
+| SQLRouter                     | Used to process routing results                       |
 
-| *Implementation Class*    | *Description*                        |
-| ------------------------- | ------------------------------------ |
-| ShardingMetaDataDecorator | Used to update sharding meta data    |
-| EncryptMetaDataDecorator  | Used to update encryption meta data  |
-
-## RouteDecorator
-
-| *SPI Name*                | *Description*                                   |
-| ------------------------- | ----------------------------------------------- |
-| RouteDecorator            | Used to process routing results                 |
-
-| *Implementation Class*    | *Description*                                   |
-| ------------------------- | ----------------------------------------------- |
-| ShardingRouteDecorator    | Used to process sharding routing results        |
-| MasterSlaveRouteDecorator | Used to process master-slave routing results    |
-| ReplicaRouteDecorator     | Used to process multi replica routing results   |
-| ShadowRouteDecorator      | Used to process shadow database routing results |
+| *Implementation Class*        | *Description*                                         |
+| ----------------------------- | ----------------------------------------------------- |
+| ShardingSQLRouter             | Used to process sharding routing results              |
+| ReplicaQuerySQLRouter         | Used to process replica query routing results         |
+| ShadowRouteSQLRouter          | Used to process shadow database routing results       |
 
 ## SQLRewriteContextDecorator
 
@@ -67,16 +58,6 @@ chapter = true
 | ShardingSQLRewriteContextDecorator | Used to process sharding SQL rewrite results   |
 | EncryptSQLRewriteContextDecorator  | Used to process encryption SQL rewrite results |
 | ShadowSQLRewriteContextDecorator   | Used to process shadow SQL rewrite results     |
-
-## ExecuteGroupDecorator
-
-| *SPI Name*                   | *Description*                          |
-| ---------------------------- | -------------------------------------- |
-| ExecuteGroupDecorator        | Used by update data nodes group result |
-
-| *Implementation Class*       | *Description*                          |
-| ---------------------------- | -------------------------------------- |
-| ReplicaExecuteGroupDecorator | Used by multi replica data nodes group |
 
 ## SQLExecutionHook
 

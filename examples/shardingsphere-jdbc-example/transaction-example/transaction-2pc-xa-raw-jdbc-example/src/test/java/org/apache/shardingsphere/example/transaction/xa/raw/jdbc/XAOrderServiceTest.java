@@ -19,6 +19,7 @@ package org.apache.shardingsphere.example.transaction.xa.raw.jdbc;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -27,7 +28,8 @@ import java.sql.SQLException;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
-public class XAOrderServiceTest {
+@Ignore
+public final class XAOrderServiceTest {
     
     private XAOrderService orderService;
     

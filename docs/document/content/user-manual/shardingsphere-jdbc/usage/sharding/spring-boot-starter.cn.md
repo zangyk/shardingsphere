@@ -8,28 +8,30 @@ weight = 3
 ```xml
 <dependency>
     <groupId>org.apache.shardingsphere</groupId>
-    <artifactId>shardingsphere-jdbc-spring-boot-starter</artifactId>
+    <artifactId>shardingsphere-jdbc-core-spring-boot-starter</artifactId>
     <version>${shardingsphere.version}</version>
 </dependency>
 ```
 
 ## 规则配置
 
+注：示例的数据库连接池为HikariCP，可根据业务场景更换为其他主流数据库连接池。
+
 ```properties
 # 配置真实数据源
 spring.shardingsphere.datasource.names=ds0,ds1
 
 # 配置第 1 个数据源
-spring.shardingsphere.datasource.ds0.type=org.apache.commons.dbcp2.BasicDataSource
+spring.shardingsphere.datasource.ds0.type=com.zaxxer.hikari.HikariDataSource
 spring.shardingsphere.datasource.ds0.driver-class-name=com.mysql.jdbc.Driver
-spring.shardingsphere.datasource.ds0.url=jdbc:mysql://localhost:3306/ds0
+spring.shardingsphere.datasource.ds0.jdbc-url=jdbc:mysql://localhost:3306/ds0
 spring.shardingsphere.datasource.ds0.username=root
 spring.shardingsphere.datasource.ds0.password=
 
 # 配置第 2 个数据源
-spring.shardingsphere.datasource.ds1.type=org.apache.commons.dbcp2.BasicDataSource
+spring.shardingsphere.datasource.ds1.type=com.zaxxer.hikari.HikariDataSource
 spring.shardingsphere.datasource.ds1.driver-class-name=com.mysql.jdbc.Driver
-spring.shardingsphere.datasource.ds1.url=jdbc:mysql://localhost:3306/ds1
+spring.shardingsphere.datasource.ds1.jdbc-url=jdbc:mysql://localhost:3306/ds1
 spring.shardingsphere.datasource.ds1.username=root
 spring.shardingsphere.datasource.ds1.password=
 
@@ -49,9 +51,9 @@ spring.shardingsphere.rules.sharding.tables.t_order.table-strategy.standard.shar
 
 # 配置 分片算法
 spring.shardingsphere.rules.sharding.sharding-algorithms.database_inline.type=INLINE
-spring.shardingsphere.rules.sharding.sharding-algorithms.database_inline.props.algorithm.expression=ds_${user_id % 2}
+spring.shardingsphere.rules.sharding.sharding-algorithms.database_inline.props.algorithm-expression=ds_${user_id % 2}
 spring.shardingsphere.rules.sharding.sharding-algorithms.table_inline.type=INLINE
-spring.shardingsphere.rules.sharding.sharding-algorithms.table_inline.props.algorithm.expression=t_order_${order_id % 2}
+spring.shardingsphere.rules.sharding.sharding-algorithms.table_inline.props.algorithm-expression=t_order_${order_id % 2}
 
 ```
 

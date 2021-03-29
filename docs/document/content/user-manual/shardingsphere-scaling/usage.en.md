@@ -1,5 +1,5 @@
 +++
-pre = "<b>4.5.2. </b>"
+pre = "<b>4.4.2. </b>"
 title = "Manual"
 weight = 2
 +++
@@ -12,15 +12,14 @@ JAVA，JDK 1.8+.
 
 The migration scene we support：
 
-| Source                     | Destination          | Support |
+| Source                     | Target          | Support |
 | -------------------------- | -------------------- | ------- |
 | MySQL(5.1.15 ~ 5.7.x)      | ShardingSphere-Proxy | Yes     |
 | PostgreSQL(9.4 ~ )         | ShardingSphere-Proxy | Yes     |
 
 **Attention**: 
 
-If the backend database is MySQL, download [MySQL Connector/J](https://cdn.mysql.com//Downloads/Connector-J/mysql-connector-java-5.1.47.tar.gz) 
-and decompress, then copy mysql-connector-java-5.1.47.jar to ${shardingsphere-scaling}\lib directory.
+If the backend database is MySQL, please download [mysql-connector-java-5.1.47.jar](https://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.47/mysql-connector-java-5.1.47.jar) and put it into `${shardingsphere-scaling}\lib directory`.
 
 ### Privileges
 
@@ -50,41 +49,87 @@ ShardingSphere-Scaling provides a simple HTTP API
 
 #### Start scaling job
 
-Interface description：POST /shardingscaling/job/start
+Interface description：POST /scaling/job/start
 
-Body：
+Body:
 
-| Parameter                                         | Describe                                        |
-|---------------------------------------------------|-------------------------------------------------|
-| ruleConfiguration.sourceDatasource                | source sharding sphere data source configuration |
-| ruleConfiguration.sourceRule                      | source sharding sphere table rule configuration  |
-| ruleConfiguration.destinationDataSources.name     | destination sharding proxy name                 |
-| ruleConfiguration.destinationDataSources.url      | destination sharding proxy jdbc url             |
-| ruleConfiguration.destinationDataSources.username | destination sharding proxy username             |
-| ruleConfiguration.destinationDataSources.password | destination sharding proxy password             |
-| jobConfiguration.concurrency                      | sync task proposed concurrency                  |
+| Parameter                                         | Describe                                                     |
+| ------------------------------------------------- | ------------------------------------------------------------ |
+| ruleConfig.source                                 | source data source configuration                             |
+| ruleConfig.target                                 | target data source configuration                             |
+| jobConfiguration.concurrency                      | sync task proposed concurrency                               |
+
+Data source configuration:
+
+| Parameter                                         | Describe                                                     |
+| ------------------------------------------------- | ------------------------------------------------------------ |
+| type                                              | data source type(available parameters:shardingSphereJdbc,jdbc)|
+| parameter                                         | data source parameter                                        |
+
+*** Notice ***
+
+Currently source type must shardingSphereJdbc
 
 Example：
 
 ```
 curl -X POST \
-  http://localhost:8888/shardingscaling/job/start \
+  http://localhost:8888/scaling/job/start \
   -H 'content-type: application/json' \
   -d '{
-   "ruleConfiguration": {
-      "sourceDatasource": "ds_0: !!org.apache.shardingsphere.orchestration.yaml.config.YamlDataSourceConfiguration\n  dataSourceClassName: com.zaxxer.hikari.HikariDataSource\n  props:\n    jdbcUrl: jdbc:mysql://127.0.0.1:3306/test?serverTimezone=UTC&useSSL=false\n    username: root\n    password: '\''123456'\''\n    connectionTimeout: 30000\n    idleTimeout: 60000\n    maxLifetime: 1800000\n    maxPoolSize: 50\n    minPoolSize: 1\n    maintenanceIntervalMilliseconds: 30000\n    readOnly: false\n",
-      "sourceRule": "defaultDatabaseStrategy:\n  inline:\n    algorithmExpression: ds_${user_id % 2}\n    shardingColumn: user_id\ntables:\n  t1:\n    actualDataNodes: ds_0.t1\n    keyGenerateStrategy:\n      column: order_id\n      type: SNOWFLAKE\n    logicTable: t1\n    tableStrategy:\n      inline:\n        algorithmExpression: t1\n        shardingColumn: order_id\n  t2:\n    actualDataNodes: ds_0.t2\n    keyGenerateStrategy:\n      column: order_item_id\n      type: SNOWFLAKE\n    logicTable: t2\n    tableStrategy:\n      inline:\n        algorithmExpression: t2\n        shardingColumn: order_id\n",
-      "destinationDataSources": {
-         "name": "dt_0",
-         "password": "123456",
-         "url": "jdbc:mysql://127.0.0.1:3306/test2?serverTimezone=UTC&useSSL=false",
-         "username": "root"
-      }
-   },
-   "jobConfiguration": {
-      "concurrency": 3
-   }
-}'
+        "ruleConfig": {
+          "source": {
+            "type": "shardingSphereJdbc",
+            "parameter": "
+                dataSources:
+                  ds_0:
+                    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+                    jdbcUrl: jdbc:mysql://127.0.0.1:3306/scaling_0?useSSL=false
+                    username: scaling
+                    password: scaling
+                  ds_1:
+                    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+                    jdbcUrl: jdbc:mysql://127.0.0.1:3306/scaling_1?useSSL=false
+                    username: scaling
+                    password: scaling
+                rules:
+                - !SHARDING
+                  tables:
+                    t_order:
+                      actualDataNodes: ds_$->{0..1}.t_order_$->{0..1}
+                      databaseStrategy:
+                        standard:
+                          shardingColumn: order_id
+                          shardingAlgorithmName: t_order_db_algorith
+                      logicTable: t_order
+                      tableStrategy:
+                        standard:
+                          shardingColumn: user_id
+                          shardingAlgorithmName: t_order_tbl_algorith
+                  shardingAlgorithms:
+                    t_order_db_algorith:
+                      type: INLINE
+                      props:
+                        algorithm-expression: ds_$->{order_id % 2}
+                    t_order_tbl_algorith:
+                      type: INLINE
+                      props:
+                        algorithm-expression: t_order_$->{user_id % 2}
+                "
+          },
+          "target": {
+              "type": "jdbc",
+              "parameter": "
+                username: root
+                password: root
+                jdbcUrl: jdbc:mysql://127.0.0.1:3307/sharding_db?serverTimezone=UTC&useSSL=false
+                "
+          }
+        },
+        "jobConfiguration":{
+          "concurrency":"3"
+        }
+      }'
 ```
 
 Response：
@@ -100,12 +145,12 @@ Response：
 
 #### Get scaling progress
 
-Interface description：GET /shardingscaling/job/progress/{jobId}
+Interface description：GET /scaling/job/progress/{jobId}
 
 Example：
 ```
 curl -X GET \
-  http://localhost:8888/shardingscaling/job/progress/1
+  http://localhost:8888/scaling/job/progress/1
 ```
 
 Response：
@@ -162,12 +207,12 @@ Response：
 
 #### List scaling jobs
 
-Interface description：GET /shardingscaling/job/list
+Interface description：GET /scaling/job/list
 
 Example：
 ```
 curl -X GET \
-  http://localhost:8888/shardingscaling/job/list
+  http://localhost:8888/scaling/job/list
 ```
 
 Response：
@@ -188,7 +233,7 @@ Response：
 
 #### Stop scaling job
 
-Interface description：POST /shardingscaling/job/stop
+Interface description：GET /scaling/job/stop
 
 Body：
 
@@ -198,12 +243,8 @@ Body：
 
 Example：
 ```
-curl -X POST \
-  http://localhost:8888/shardingscaling/job/stop \
-  -H 'content-type: application/json' \
-  -d '{
-   "jobId":1
-}'
+curl -X GET \
+  http://localhost:8888/scaling/job/stop/1
 ```
 Response：
 ```

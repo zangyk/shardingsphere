@@ -17,14 +17,13 @@
 
 package org.apache.shardingsphere.proxy.frontend.mysql.command.query.text.query;
 
-import lombok.SneakyThrows;
 import org.apache.shardingsphere.db.protocol.mysql.packet.command.query.text.query.MySQLComQueryPacket;
-import org.apache.shardingsphere.infra.executor.sql.raw.execute.result.query.QueryHeader;
-import org.apache.shardingsphere.proxy.backend.response.error.ErrorResponse;
-import org.apache.shardingsphere.proxy.backend.response.query.QueryResponse;
-import org.apache.shardingsphere.proxy.backend.response.update.UpdateResponse;
+import org.apache.shardingsphere.proxy.backend.response.header.query.QueryResponseHeader;
+import org.apache.shardingsphere.proxy.backend.response.header.query.impl.QueryHeader;
+import org.apache.shardingsphere.proxy.backend.response.header.update.UpdateResponseHeader;
 import org.apache.shardingsphere.proxy.backend.text.TextProtocolBackendHandler;
-import org.hamcrest.Matchers;
+import org.apache.shardingsphere.proxy.frontend.command.executor.ResponseType;
+import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -34,46 +33,32 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.sql.SQLException;
 import java.util.Collections;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class MySQLComQueryPacketExecutorTest {
-    
-    @Mock
-    private SQLException sqlException;
+public final class MySQLComQueryPacketExecutorTest {
     
     @Mock
     private TextProtocolBackendHandler textProtocolBackendHandler;
     
-    private final MySQLComQueryPacketExecutor mysqlComQueryPacketExecutor = new MySQLComQueryPacketExecutor(mock(MySQLComQueryPacket.class), null);
-    
     @Test
-    @SneakyThrows
-    public void assertIsErrorResponse() {
+    public void assertIsQueryResponse() throws SQLException, NoSuchFieldException {
+        MySQLComQueryPacketExecutor mysqlComQueryPacketExecutor = new MySQLComQueryPacketExecutor(mock(MySQLComQueryPacket.class), null);
         FieldSetter.setField(mysqlComQueryPacketExecutor, MySQLComQueryPacketExecutor.class.getDeclaredField("textProtocolBackendHandler"), textProtocolBackendHandler);
-        when(sqlException.getCause()).thenReturn(new Exception());
-        when(textProtocolBackendHandler.execute()).thenReturn(new ErrorResponse(sqlException));
+        when(textProtocolBackendHandler.execute()).thenReturn(new QueryResponseHeader(Collections.singletonList(mock(QueryHeader.class))));
         mysqlComQueryPacketExecutor.execute();
-        assertThat(mysqlComQueryPacketExecutor.isErrorResponse(), Matchers.is(true));
+        assertThat(mysqlComQueryPacketExecutor.getResponseType(), is(ResponseType.QUERY));
     }
     
     @Test
-    @SneakyThrows
-    public void assertIsUpdateResponse() {
+    public void assertIsUpdateResponse() throws SQLException, NoSuchFieldException {
+        MySQLComQueryPacketExecutor mysqlComQueryPacketExecutor = new MySQLComQueryPacketExecutor(mock(MySQLComQueryPacket.class), null);
         FieldSetter.setField(mysqlComQueryPacketExecutor, MySQLComQueryPacketExecutor.class.getDeclaredField("textProtocolBackendHandler"), textProtocolBackendHandler);
-        when(textProtocolBackendHandler.execute()).thenReturn(new UpdateResponse());
+        when(textProtocolBackendHandler.execute()).thenReturn(new UpdateResponseHeader(mock(SQLStatement.class)));
         mysqlComQueryPacketExecutor.execute();
-        assertThat(mysqlComQueryPacketExecutor.isUpdateResponse(), Matchers.is(true));
-    }
-    
-    @Test
-    @SneakyThrows
-    public void assertIsQuery() {
-        FieldSetter.setField(mysqlComQueryPacketExecutor, MySQLComQueryPacketExecutor.class.getDeclaredField("textProtocolBackendHandler"), textProtocolBackendHandler);
-        when(textProtocolBackendHandler.execute()).thenReturn(new QueryResponse(Collections.singletonList(mock(QueryHeader.class))));
-        mysqlComQueryPacketExecutor.execute();
-        assertThat(mysqlComQueryPacketExecutor.isQuery(), Matchers.is(true));
+        assertThat(mysqlComQueryPacketExecutor.getResponseType(), is(ResponseType.UPDATE));
     }
 }

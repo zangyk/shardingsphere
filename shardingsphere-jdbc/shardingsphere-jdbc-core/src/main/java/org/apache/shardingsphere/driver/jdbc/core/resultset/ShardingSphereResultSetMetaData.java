@@ -20,17 +20,17 @@ package org.apache.shardingsphere.driver.jdbc.core.resultset;
 import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.driver.jdbc.adapter.WrapperAdapter;
 import org.apache.shardingsphere.driver.jdbc.core.constant.SQLExceptionConstant;
-import org.apache.shardingsphere.sql.parser.binder.segment.select.projection.Projection;
-import org.apache.shardingsphere.sql.parser.binder.segment.select.projection.impl.ColumnProjection;
-import org.apache.shardingsphere.sql.parser.binder.statement.SQLStatementContext;
-import org.apache.shardingsphere.sql.parser.binder.statement.dml.SelectStatementContext;
+import org.apache.shardingsphere.infra.binder.segment.select.projection.Projection;
+import org.apache.shardingsphere.infra.binder.segment.select.projection.impl.ColumnProjection;
+import org.apache.shardingsphere.infra.binder.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.binder.statement.dml.SelectStatementContext;
 import org.apache.shardingsphere.infra.database.DefaultSchema;
+import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
-import org.apache.shardingsphere.infra.rule.DataNodeRoutedRule;
+import org.apache.shardingsphere.infra.rule.type.DataNodeContainedRule;
 
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -42,13 +42,19 @@ public final class ShardingSphereResultSetMetaData extends WrapperAdapter implem
     
     private final ResultSetMetaData resultSetMetaData;
     
-    private final Collection<ShardingSphereRule> rules;
+    private final ShardingSphereMetaData shardingSphereMetaData;
     
-    private final SQLStatementContext sqlStatementContext;
+    private final SQLStatementContext<?> sqlStatementContext;
     
     @Override
-    public int getColumnCount() {
-        return sqlStatementContext instanceof SelectStatementContext ? ((SelectStatementContext) sqlStatementContext).getProjectionsContext().getExpandProjections().size() : 0;
+    public int getColumnCount() throws SQLException {
+        if (sqlStatementContext instanceof SelectStatementContext) {
+            if (hasSelectExpandProjections()) {
+                return ((SelectStatementContext) sqlStatementContext).getProjectionsContext().getExpandProjections().size();
+            }
+            return resultSetMetaData.getColumnCount();
+        }
+        return resultSetMetaData.getColumnCount();
     }
     
     @Override
@@ -93,7 +99,7 @@ public final class ShardingSphereResultSetMetaData extends WrapperAdapter implem
     
     @Override
     public String getColumnName(final int column) throws SQLException {
-        if (sqlStatementContext instanceof SelectStatementContext) {
+        if (hasSelectExpandProjections()) {
             List<Projection> actualProjections = ((SelectStatementContext) sqlStatementContext).getProjectionsContext().getExpandProjections();
             if (column > actualProjections.size()) {
                 throw new SQLException(SQLExceptionConstant.COLUMN_INDEX_OUT_OF_RANGE, SQLExceptionConstant.OUT_OF_INDEX_SQL_STATE, 0);
@@ -104,6 +110,10 @@ public final class ShardingSphereResultSetMetaData extends WrapperAdapter implem
             }
         }
         return resultSetMetaData.getColumnName(column);
+    }
+    
+    private boolean hasSelectExpandProjections() {
+        return sqlStatementContext instanceof SelectStatementContext && !((SelectStatementContext) sqlStatementContext).getProjectionsContext().getExpandProjections().isEmpty();
     }
     
     @Override
@@ -124,8 +134,8 @@ public final class ShardingSphereResultSetMetaData extends WrapperAdapter implem
     @Override
     public String getTableName(final int column) throws SQLException {
         String actualTableName = resultSetMetaData.getTableName(column);
-        Optional<ShardingSphereRule> rule = rules.stream().filter(each -> each instanceof DataNodeRoutedRule).findFirst();
-        return rule.isPresent() ? ((DataNodeRoutedRule) rule.get()).findLogicTableByActualTable(actualTableName).orElse(actualTableName) : actualTableName;
+        Optional<ShardingSphereRule> rule = shardingSphereMetaData.getRuleMetaData().getRules().stream().filter(each -> each instanceof DataNodeContainedRule).findFirst();
+        return rule.isPresent() ? ((DataNodeContainedRule) rule.get()).findLogicTableByActualTable(actualTableName).orElse(actualTableName) : actualTableName;
     }
     
     @Override

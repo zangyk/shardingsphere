@@ -19,9 +19,9 @@ package org.apache.shardingsphere.sharding.rewrite.parameter.impl;
 
 import lombok.Setter;
 import org.apache.shardingsphere.infra.rewrite.sql.token.generator.aware.RouteContextAware;
-import org.apache.shardingsphere.sql.parser.binder.segment.select.pagination.PaginationContext;
-import org.apache.shardingsphere.sql.parser.binder.statement.SQLStatementContext;
-import org.apache.shardingsphere.sql.parser.binder.statement.dml.SelectStatementContext;
+import org.apache.shardingsphere.infra.binder.segment.select.pagination.PaginationContext;
+import org.apache.shardingsphere.infra.binder.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.binder.statement.dml.SelectStatementContext;
 import org.apache.shardingsphere.infra.rewrite.parameter.builder.ParameterBuilder;
 import org.apache.shardingsphere.infra.rewrite.parameter.builder.impl.StandardParameterBuilder;
 import org.apache.shardingsphere.infra.rewrite.parameter.rewriter.ParameterRewriter;
@@ -40,7 +40,7 @@ public final class ShardingPaginationParameterRewriter implements ParameterRewri
     @Override
     public boolean isNeedRewrite(final SQLStatementContext sqlStatementContext) {
         return sqlStatementContext instanceof SelectStatementContext
-                && ((SelectStatementContext) sqlStatementContext).getPaginationContext().isHasPagination() && !routeContext.getRouteResult().isSingleRouting();
+                && ((SelectStatementContext) sqlStatementContext).getPaginationContext().isHasPagination() && !routeContext.isSingleRouting();
     }
     
     @Override
@@ -48,7 +48,7 @@ public final class ShardingPaginationParameterRewriter implements ParameterRewri
         PaginationContext pagination = selectStatementContext.getPaginationContext();
         pagination.getOffsetParameterIndex().ifPresent(offsetParameterIndex -> rewriteOffset(pagination, offsetParameterIndex, (StandardParameterBuilder) parameterBuilder));
         pagination.getRowCountParameterIndex().ifPresent(
-            rowCountParameterIndex -> rewriteRowCount(pagination, rowCountParameterIndex, (StandardParameterBuilder) parameterBuilder, selectStatementContext));
+            optional -> rewriteRowCount(pagination, optional, (StandardParameterBuilder) parameterBuilder, selectStatementContext));
     }
     
     private void rewriteOffset(final PaginationContext pagination, final int offsetParameterIndex, final StandardParameterBuilder parameterBuilder) {

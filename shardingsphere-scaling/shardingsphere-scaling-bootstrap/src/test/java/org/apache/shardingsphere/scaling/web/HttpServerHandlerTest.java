@@ -17,6 +17,8 @@
 
 package org.apache.shardingsphere.scaling.web;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.gson.Gson;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -27,10 +29,16 @@ import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.util.CharsetUtil;
-import org.apache.shardingsphere.orchestration.core.common.yaml.config.YamlDataSourceConfiguration;
-import org.apache.shardingsphere.scaling.core.config.ScalingConfiguration;
-import org.apache.shardingsphere.scaling.core.config.ScalingContext;
-import org.apache.shardingsphere.scaling.core.config.ServerConfiguration;
+import lombok.SneakyThrows;
+import org.apache.shardingsphere.scaling.core.api.JobInfo;
+import org.apache.shardingsphere.scaling.core.api.ScalingAPI;
+import org.apache.shardingsphere.scaling.core.config.JobConfiguration;
+import org.apache.shardingsphere.scaling.core.job.JobContext;
+import org.apache.shardingsphere.scaling.core.job.check.consistency.DataConsistencyCheckResult;
+import org.apache.shardingsphere.scaling.core.job.progress.JobProgress;
+import org.apache.shardingsphere.scaling.core.util.ReflectionUtil;
+import org.apache.shardingsphere.scaling.util.ServerConfigurationInitializer;
+import org.apache.shardingsphere.scaling.web.entity.ResponseContent;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,105 +46,98 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class HttpServerHandlerTest {
+public final class HttpServerHandlerTest {
     
-    private static final Gson GSON = new Gson();
+    private HttpServerHandler httpServerHandler;
+    
+    @Mock
+    private ScalingAPI scalingAPI;
     
     @Mock
     private ChannelHandlerContext channelHandlerContext;
     
-    private FullHttpRequest fullHttpRequest;
-    
-    private HttpServerHandler httpServerHandler;
-    
-    private ScalingConfiguration scalingConfiguration;
-    
     @Before
+    @SneakyThrows(ReflectiveOperationException.class)
     public void setUp() {
-        initConfig("/config.json");
-        ScalingContext.getInstance().init(new ServerConfiguration());
+        ServerConfigurationInitializer.init();
         httpServerHandler = new HttpServerHandler();
+        ReflectionUtil.setFieldValue(httpServerHandler, "scalingAPI", scalingAPI);
     }
     
     @Test
-    public void assertChannelReadStartSuccess() {
-        scalingConfiguration.getRuleConfiguration().setSourceDatasource("ds_0: !!" + YamlDataSourceConfiguration.class.getName() + "\n  "
-                + "dataSourceClassName: com.zaxxer.hikari.HikariDataSource\n  props:\n    "
-                + "jdbcUrl: jdbc:h2:mem:test_db;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;MODE=MySQL\n    username: root\n    password: 'password'\n    connectionTimeout: 30000\n    "
-                + "idleTimeout: 60000\n    maxLifetime: 1800000\n    maxPoolSize: 50\n    minPoolSize: 1\n    maintenanceIntervalMilliseconds: 30000\n    readOnly: false\n");
-        scalingConfiguration.getRuleConfiguration().getDestinationDataSources().setUrl("jdbc:h2:mem:test_db;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;MODE=MySQL");
-        scalingConfiguration.getRuleConfiguration().getDestinationDataSources().setName("root");
-        scalingConfiguration.getRuleConfiguration().getDestinationDataSources().setPassword("password");
-        ByteBuf byteBuf = Unpooled.copiedBuffer(GSON.toJson(scalingConfiguration), CharsetUtil.UTF_8);
-        fullHttpRequest = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/scaling/job/start", byteBuf);
-        httpServerHandler.channelRead0(channelHandlerContext, fullHttpRequest);
-        ArgumentCaptor argumentCaptor = ArgumentCaptor.forClass(FullHttpResponse.class);
-        verify(channelHandlerContext).writeAndFlush(argumentCaptor.capture());
-        FullHttpResponse fullHttpResponse = (FullHttpResponse) argumentCaptor.getValue();
-        assertTrue(fullHttpResponse.content().toString(CharsetUtil.UTF_8).contains("{\"success\":true"));
+    public void assertStartJobSuccess() {
+        when(scalingAPI.start(any(JobConfiguration.class))).thenReturn(Optional.of(1L));
+        ResponseContent<?> responseContent = execute("/scaling/job/start");
+        assertTrue(responseContent.isSuccess());
     }
     
     @Test
-    public void assertChannelReadProgress() {
-        fullHttpRequest = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/scaling/job/progress/2");
-        httpServerHandler.channelRead0(channelHandlerContext, fullHttpRequest);
-        ArgumentCaptor argumentCaptor = ArgumentCaptor.forClass(FullHttpResponse.class);
-        verify(channelHandlerContext).writeAndFlush(argumentCaptor.capture());
-        FullHttpResponse fullHttpResponse = (FullHttpResponse) argumentCaptor.getValue();
-        assertTrue(fullHttpResponse.content().toString(CharsetUtil.UTF_8).contains("Can't find scaling job id 2"));
+    public void assertStartJobFailure() {
+        when(scalingAPI.start(any(JobConfiguration.class))).thenReturn(Optional.empty());
+        ResponseContent<?> responseContent = execute("/scaling/job/start");
+        assertFalse(responseContent.isSuccess());
     }
     
     @Test
-    public void assertChannelReadStop() {
-        Map<String, Integer> map = new HashMap<>();
-        map.put("id", 1);
-        ByteBuf byteBuf = Unpooled.copiedBuffer(GSON.toJson(map), CharsetUtil.UTF_8);
-        fullHttpRequest = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/scaling/job/stop", byteBuf);
-        httpServerHandler.channelRead0(channelHandlerContext, fullHttpRequest);
-        ArgumentCaptor argumentCaptor = ArgumentCaptor.forClass(FullHttpResponse.class);
-        verify(channelHandlerContext).writeAndFlush(argumentCaptor.capture());
-        FullHttpResponse fullHttpResponse = (FullHttpResponse) argumentCaptor.getValue();
-        assertTrue(fullHttpResponse.content().toString(CharsetUtil.UTF_8).contains("{\"success\":true"));
+    @SuppressWarnings("unchecked")
+    public void assertListJobs() {
+        when(scalingAPI.list()).thenReturn(mockJobInfos());
+        ResponseContent<?> responseContent = execute("/scaling/job/list");
+        assertThat(((List<JobContext>) responseContent.getModel()).size(), is(1));
     }
     
     @Test
-    public void assertChannelReadList() {
-        fullHttpRequest = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/scaling/job/list");
-        httpServerHandler.channelRead0(channelHandlerContext, fullHttpRequest);
-        ArgumentCaptor argumentCaptor = ArgumentCaptor.forClass(FullHttpResponse.class);
-        verify(channelHandlerContext).writeAndFlush(argumentCaptor.capture());
-        FullHttpResponse fullHttpResponse = (FullHttpResponse) argumentCaptor.getValue();
-        assertTrue(fullHttpResponse.content().toString(CharsetUtil.UTF_8).contains("{\"success\":true"));
+    @SuppressWarnings("unchecked")
+    public void assertGetJobProgress() {
+        when(scalingAPI.getProgress(1L)).thenReturn(mockJobProgress());
+        ResponseContent<?> responseContent = execute("/scaling/job/progress/1");
+        Map<String, Map<String, String>> map = (Map<String, Map<String, String>>) responseContent.getModel();
+        assertThat(map.get("1").get("status"), is("RUNNING"));
+    }
+    
+    @Test
+    public void assertStopJob() {
+        ResponseContent<?> responseContent = execute("/scaling/job/stop/1");
+        assertTrue(responseContent.isSuccess());
+    }
+    
+    @Test
+    public void assertDataConsistencyCheck() {
+        when(scalingAPI.dataConsistencyCheck(1L)).thenReturn(mockDataConsistency());
+        ResponseContent<?> responseContent = execute("/scaling/job/check/1");
+        assertTrue(responseContent.isSuccess());
+    }
+    
+    @Test
+    public void assertResetTargetTable() {
+        ResponseContent<?> responseContent = execute("/scaling/job/reset/1");
+        assertTrue(responseContent.isSuccess());
     }
     
     @Test
     public void assertChannelReadUnsupportedUrl() {
-        fullHttpRequest = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.DELETE, "/scaling/1");
-        httpServerHandler.channelRead0(channelHandlerContext, fullHttpRequest);
-        ArgumentCaptor argumentCaptor = ArgumentCaptor.forClass(FullHttpResponse.class);
-        verify(channelHandlerContext).writeAndFlush(argumentCaptor.capture());
-        FullHttpResponse fullHttpResponse = (FullHttpResponse) argumentCaptor.getValue();
-        assertTrue(fullHttpResponse.content().toString(CharsetUtil.UTF_8).contains("Not support request!"));
+        ResponseContent<?> responseContent = execute("/scaling/1");
+        assertThat(responseContent.getErrorMsg(), is("Not support request!"));
     }
     
     @Test
     public void assertChannelReadUnsupportedMethod() {
-        fullHttpRequest = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.DELETE, "/scaling/job/stop");
-        httpServerHandler.channelRead0(channelHandlerContext, fullHttpRequest);
-        ArgumentCaptor argumentCaptor = ArgumentCaptor.forClass(FullHttpResponse.class);
-        verify(channelHandlerContext).writeAndFlush(argumentCaptor.capture());
-        FullHttpResponse fullHttpResponse = (FullHttpResponse) argumentCaptor.getValue();
-        assertTrue(fullHttpResponse.content().toString(CharsetUtil.UTF_8).contains("Not support request!"));
+        ResponseContent<?> responseContent = execute("/scaling/1", HttpMethod.DELETE);
+        assertThat(responseContent.getErrorMsg(), is("Not support request!"));
     }
     
     @Test
@@ -146,9 +147,35 @@ public class HttpServerHandlerTest {
         verify(channelHandlerContext).close();
     }
     
-    private void initConfig(final String configFile) {
-        InputStream fileInputStream = HttpServerHandlerTest.class.getResourceAsStream(configFile);
-        InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream);
-        scalingConfiguration = GSON.fromJson(inputStreamReader, ScalingConfiguration.class);
+    private ResponseContent<?> execute(final String uri) {
+        return execute(uri, HttpMethod.POST);
+    }
+    
+    private ResponseContent<?> execute(final String uri, final HttpMethod httpMethod) {
+        ByteBuf byteBuf = Unpooled.copiedBuffer("{}", CharsetUtil.UTF_8);
+        FullHttpRequest fullHttpRequest = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, httpMethod, uri, byteBuf);
+        httpServerHandler.channelRead0(channelHandlerContext, fullHttpRequest);
+        ArgumentCaptor<FullHttpResponse> argumentCaptor = ArgumentCaptor.forClass(FullHttpResponse.class);
+        verify(channelHandlerContext).writeAndFlush(argumentCaptor.capture());
+        FullHttpResponse fullHttpResponse = argumentCaptor.getValue();
+        return new Gson().fromJson(fullHttpResponse.content().toString(CharsetUtil.UTF_8), ResponseContent.class);
+    }
+    
+    private List<JobInfo> mockJobInfos() {
+        List<JobInfo> result = Lists.newArrayList();
+        result.add(new JobInfo(1L));
+        return result;
+    }
+    
+    private Map<Integer, JobProgress> mockJobProgress() {
+        Map<Integer, JobProgress> result = Maps.newHashMap();
+        result.put(1, new JobProgress());
+        return result;
+    }
+    
+    private Map<String, DataConsistencyCheckResult> mockDataConsistency() {
+        Map<String, DataConsistencyCheckResult> result = Maps.newHashMap();
+        result.put("t_order", new DataConsistencyCheckResult(1, 1));
+        return result;
     }
 }

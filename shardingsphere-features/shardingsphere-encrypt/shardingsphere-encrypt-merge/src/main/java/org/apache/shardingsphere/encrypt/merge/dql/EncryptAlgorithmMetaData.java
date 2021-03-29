@@ -20,11 +20,12 @@ package org.apache.shardingsphere.encrypt.merge.dql;
 import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
 import org.apache.shardingsphere.encrypt.spi.EncryptAlgorithm;
-import org.apache.shardingsphere.sql.parser.binder.metadata.schema.SchemaMetaData;
-import org.apache.shardingsphere.sql.parser.binder.segment.select.projection.Projection;
-import org.apache.shardingsphere.sql.parser.binder.segment.select.projection.impl.ColumnProjection;
-import org.apache.shardingsphere.sql.parser.binder.statement.dml.SelectStatementContext;
+import org.apache.shardingsphere.infra.metadata.schema.ShardingSphereSchema;
+import org.apache.shardingsphere.infra.binder.segment.select.projection.Projection;
+import org.apache.shardingsphere.infra.binder.segment.select.projection.impl.ColumnProjection;
+import org.apache.shardingsphere.infra.binder.statement.dml.SelectStatementContext;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -33,7 +34,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public final class EncryptAlgorithmMetaData {
     
-    private final SchemaMetaData schemaMetaData;
+    private final ShardingSphereSchema schema;
     
     private final EncryptRule encryptRule;
     
@@ -46,10 +47,18 @@ public final class EncryptAlgorithmMetaData {
      * @return encryptor
      */
     public Optional<EncryptAlgorithm> findEncryptor(final int columnIndex) {
-        Projection projection = selectStatementContext.getProjectionsContext().getExpandProjections().get(columnIndex - 1);
+        List<Projection> expandProjections = selectStatementContext.getProjectionsContext().getExpandProjections();
+        if (expandProjections.isEmpty()) {
+            return Optional.empty();
+        }
+        return findEncryptor(columnIndex, expandProjections);
+    }
+    
+    private Optional<EncryptAlgorithm> findEncryptor(final int columnIndex, final List<Projection> expandProjections) {
+        Projection projection = expandProjections.get(columnIndex - 1);
         if (projection instanceof ColumnProjection) {
             String columnName = ((ColumnProjection) projection).getName();
-            Optional<String> tableName = selectStatementContext.getTablesContext().findTableName((ColumnProjection) projection, schemaMetaData);
+            Optional<String> tableName = selectStatementContext.getTablesContext().findTableName((ColumnProjection) projection, schema);
             return tableName.isPresent() ? findEncryptor(tableName.get(), columnName) : findEncryptor(columnName);
         }
         return Optional.empty();

@@ -32,6 +32,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Properties;
@@ -42,11 +43,11 @@ import java.util.Properties;
 @Getter
 public final class AutoIntervalShardingAlgorithm implements StandardShardingAlgorithm<Comparable<?>>, ShardingAutoTableAlgorithm {
     
-    private static final String DATE_TIME_LOWER_KEY = "datetime.lower";
+    private static final String DATE_TIME_LOWER_KEY = "datetime-lower";
     
-    private static final String DATE_TIME_UPPER_KEY = "datetime.upper";
+    private static final String DATE_TIME_UPPER_KEY = "datetime-upper";
     
-    private static final String SHARDING_SECONDS_KEY = "sharding.seconds";
+    private static final String SHARDING_SECONDS_KEY = "sharding-seconds";
     
     private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     
@@ -78,13 +79,13 @@ public final class AutoIntervalShardingAlgorithm implements StandardShardingAlgo
     
     private long getShardingSeconds() {
         Preconditions.checkArgument(props.containsKey(SHARDING_SECONDS_KEY), "%s cannot be null.", SHARDING_SECONDS_KEY);
-        return Long.parseLong(props.get(SHARDING_SECONDS_KEY).toString());
+        return Long.parseLong(props.getProperty(SHARDING_SECONDS_KEY));
     }
     
     @Override
     public String doSharding(final Collection<String> availableTargetNames, final PreciseShardingValue<Comparable<?>> shardingValue) {
         for (String each : availableTargetNames) {
-            if (each.endsWith(doSharding(parseDate(shardingValue.getValue())) + "")) {
+            if (each.endsWith(String.valueOf(doSharding(parseDate(shardingValue.getValue()))))) {
                 return each;
             }
         }
@@ -98,7 +99,7 @@ public final class AutoIntervalShardingAlgorithm implements StandardShardingAlgo
         int lastPartition = getLastPartition(shardingValue.getValueRange());
         for (int i = firstPartition; i <= lastPartition; i++) {
             for (String each : availableTargetNames) {
-                if (each.endsWith(i + "")) {
+                if (each.endsWith(String.valueOf(i))) {
                     result.add(each);
                 }
                 if (result.size() == availableTargetNames.size()) {
@@ -130,5 +131,10 @@ public final class AutoIntervalShardingAlgorithm implements StandardShardingAlgo
     @Override
     public String getType() {
         return "AUTO_INTERVAL";
+    }
+    
+    @Override
+    public Collection<String> getAllPropertyKeys() {
+        return Arrays.asList(DATE_TIME_LOWER_KEY, DATE_TIME_UPPER_KEY, SHARDING_SECONDS_KEY);
     }
 }

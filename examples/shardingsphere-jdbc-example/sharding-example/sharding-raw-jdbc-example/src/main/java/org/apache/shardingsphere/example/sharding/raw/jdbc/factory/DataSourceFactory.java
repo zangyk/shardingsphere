@@ -17,17 +17,17 @@
 
 package org.apache.shardingsphere.example.sharding.raw.jdbc.factory;
 
-import org.apache.shardingsphere.example.sharding.raw.jdbc.config.MasterSlaveConfiguration;
+import org.apache.shardingsphere.example.sharding.raw.jdbc.config.ReadWriteSplittingConfiguration;
 import org.apache.shardingsphere.example.sharding.raw.jdbc.config.ShardingDatabasesAndTablesConfigurationPrecise;
 import org.apache.shardingsphere.example.sharding.raw.jdbc.config.ShardingDatabasesConfigurationPrecise;
-import org.apache.shardingsphere.example.sharding.raw.jdbc.config.ShardingMasterSlaveConfigurationPrecise;
+import org.apache.shardingsphere.example.sharding.raw.jdbc.config.ShardingReadWriteSplittingConfigurationPrecise;
 import org.apache.shardingsphere.example.sharding.raw.jdbc.config.ShardingTablesConfigurationPrecise;
 import org.apache.shardingsphere.example.type.ShardingType;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
 
-public class DataSourceFactory {
+public final class DataSourceFactory {
     
     public static DataSource newInstance(final ShardingType shardingType) throws SQLException {
         switch (shardingType) {
@@ -37,10 +37,10 @@ public class DataSourceFactory {
                 return new ShardingTablesConfigurationPrecise().getDataSource();
             case SHARDING_DATABASES_AND_TABLES:
                 return new ShardingDatabasesAndTablesConfigurationPrecise().getDataSource();
-            case MASTER_SLAVE:
-                return new MasterSlaveConfiguration().getDataSource();
-            case SHARDING_MASTER_SLAVE:
-                return new ShardingMasterSlaveConfigurationPrecise().getDataSource();
+            case READ_WRITE_SPLITTING:
+                return new ReadWriteSplittingConfiguration().getDataSource();
+            case SHARDING_READ_WRITE_SPLITTING:
+                return new ShardingReadWriteSplittingConfigurationPrecise().getDataSource();
             default:
                 throw new UnsupportedOperationException(shardingType.name());
         }

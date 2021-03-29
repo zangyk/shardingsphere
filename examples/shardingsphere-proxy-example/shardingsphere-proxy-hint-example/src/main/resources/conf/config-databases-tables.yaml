@@ -17,21 +17,27 @@
 
 schemaName: databases_tables
 
-dataSourceCommon:
-  username: root
-  password:
-  connectionTimeoutMilliseconds: 30000
-  idleTimeoutMilliseconds: 60000
-  maxLifetimeMilliseconds: 1800000
-  maxPoolSize: 50
-  minPoolSize: 1
-  maintenanceIntervalMilliseconds: 30000
-
 dataSources:
   ds_0:
     url: jdbc:mysql://localhost:3306/demo_ds_0
+    username: root
+    password:
+    connectionTimeoutMilliseconds: 30000
+    idleTimeoutMilliseconds: 60000
+    maxLifetimeMilliseconds: 1800000
+    maxPoolSize: 50
+    minPoolSize: 1
+    maintenanceIntervalMilliseconds: 30000
   ds_1:
     url: jdbc:mysql://localhost:3306/demo_ds_1
+    username: root
+    password:
+    connectionTimeoutMilliseconds: 30000
+    idleTimeoutMilliseconds: 60000
+    maxLifetimeMilliseconds: 1800000
+    maxPoolSize: 50
+    minPoolSize: 1
+    maintenanceIntervalMilliseconds: 30000
 
 rules:
 - !SHARDING
@@ -65,10 +71,10 @@ rules:
     database_inline:
       type: INLINE
       props:
-        algorithm.expression: ds_${user_id % 2}
+        algorithm-expression: ds_${user_id % 2}
    
   keyGenerators:
     snowflake:
       type: SNOWFLAKE
       props:
-          worker.id: 123
+          worker-id: 123

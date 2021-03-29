@@ -26,6 +26,9 @@ import org.apache.shardingsphere.transaction.xa.jta.datasource.XATransactionData
 import org.apache.shardingsphere.transaction.xa.manager.XATransactionManagerLoader;
 import org.apache.shardingsphere.transaction.xa.spi.XATransactionManager;
 
+import javax.transaction.HeuristicMixedException;
+import javax.transaction.HeuristicRollbackException;
+import javax.transaction.NotSupportedException;
 import javax.transaction.RollbackException;
 import javax.transaction.Status;
 import javax.transaction.SystemException;
@@ -42,14 +45,15 @@ public final class XAShardingTransactionManager implements ShardingTransactionMa
     
     private final Map<String, XATransactionDataSource> cachedDataSources = new HashMap<>();
     
-    private final XATransactionManager xaTransactionManager = XATransactionManagerLoader.getInstance().getTransactionManager();
+    private XATransactionManager xaTransactionManager;
     
     @Override
-    public void init(final DatabaseType databaseType, final Collection<ResourceDataSource> resourceDataSources) {
+    public void init(final DatabaseType databaseType, final Collection<ResourceDataSource> resourceDataSources, final String transactionMangerType) {
+        xaTransactionManager = XATransactionManagerLoader.getInstance().getXATransactionManager(transactionMangerType);
+        xaTransactionManager.init();
         for (ResourceDataSource each : resourceDataSources) {
             cachedDataSources.put(each.getOriginalName(), new XATransactionDataSource(databaseType, each.getUniqueResourceName(), each.getDataSource(), xaTransactionManager));
         }
-        xaTransactionManager.init();
     }
     
     @Override
@@ -57,7 +61,7 @@ public final class XAShardingTransactionManager implements ShardingTransactionMa
         return TransactionType.XA;
     }
     
-    @SneakyThrows
+    @SneakyThrows(SystemException.class)
     @Override
     public boolean isInTransaction() {
         return Status.STATUS_NO_TRANSACTION != xaTransactionManager.getTransactionManager().getStatus();
@@ -72,19 +76,19 @@ public final class XAShardingTransactionManager implements ShardingTransactionMa
         }
     }
     
-    @SneakyThrows
+    @SneakyThrows({SystemException.class, NotSupportedException.class})
     @Override
     public void begin() {
         xaTransactionManager.getTransactionManager().begin();
     }
     
-    @SneakyThrows
+    @SneakyThrows({SystemException.class, RollbackException.class, HeuristicMixedException.class, HeuristicRollbackException.class})
     @Override
     public void commit() {
         xaTransactionManager.getTransactionManager().commit();
     }
     
-    @SneakyThrows
+    @SneakyThrows(SystemException.class)
     @Override
     public void rollback() {
         xaTransactionManager.getTransactionManager().rollback();

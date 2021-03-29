@@ -17,71 +17,43 @@
 
 package org.apache.shardingsphere.scaling.core.job.position;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import lombok.AllArgsConstructor;
+import com.google.common.base.Preconditions;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Use primary key as position.
  */
-@NoArgsConstructor
-@AllArgsConstructor
+@RequiredArgsConstructor
 @Getter
-@Setter
-public class PrimaryKeyPosition implements Position {
+public final class PrimaryKeyPosition implements ScalingPosition<PrimaryKeyPosition> {
     
-    private static final Gson GSON = new Gson();
+    private final long beginValue;
     
-    private long beginValue;
+    private final long endValue;
     
-    private long endValue;
+    /**
+     * Init by string data.
+     *
+     * @param data string data
+     * @return primary key position
+     */
+    public static PrimaryKeyPosition init(final String data) {
+        String[] array = data.split(",");
+        Preconditions.checkArgument(array.length == 2, "Unknown primary key position: " + data);
+        return new PrimaryKeyPosition(Long.parseLong(array[0]), Long.parseLong(array[1]));
+    }
     
     @Override
-    public int compareTo(final Object position) {
+    public int compareTo(final PrimaryKeyPosition position) {
         if (null == position) {
             return 1;
         }
-        return Long.compare(beginValue, ((PrimaryKeyPosition) position).getBeginValue());
-    }
-    
-    /**
-     * Transform primary key position from json to object.
-     *
-     * @param json json data
-     * @return primary key position
-     */
-    public static PrimaryKeyPosition fromJson(final String json) {
-        List<Double> values = GSON.fromJson(json, List.class);
-        if (values.size() == 2) {
-            return new PrimaryKeyPosition(values.get(0).longValue(), values.get(1).longValue());
-        }
-        return new PlaceholderPosition();
+        return Long.compare(beginValue, position.beginValue);
     }
     
     @Override
-    public JsonElement toJson() {
-        return GSON.toJsonTree(new long[]{beginValue, endValue});
-    }
-    
-    /**
-     * Finish flag position for inventory task finished.
-     */
-    public static class FinishedPosition extends PrimaryKeyPosition {
-    
-    }
-    
-    /**
-     * Placeholder position for without primary key table.
-     */
-    public static class PlaceholderPosition extends PrimaryKeyPosition {
-    
-        public PlaceholderPosition() {
-            super(-1, -1);
-        }
+    public String toString() {
+        return String.format("%d,%d", beginValue, endValue);
     }
 }

@@ -19,7 +19,7 @@ package org.apache.shardingsphere.db.protocol.postgresql.packet.command.query.bi
 
 import lombok.Getter;
 import lombok.ToString;
-import org.apache.shardingsphere.db.protocol.postgresql.constant.PostgreSQLColumnType;
+import org.apache.shardingsphere.db.protocol.postgresql.constant.PostgreSQLBinaryColumnType;
 import org.apache.shardingsphere.db.protocol.postgresql.packet.command.PostgreSQLCommandPacket;
 import org.apache.shardingsphere.db.protocol.postgresql.packet.command.PostgreSQLCommandPacketType;
 import org.apache.shardingsphere.db.protocol.postgresql.packet.command.query.binary.PostgreSQLBinaryStatementParameterType;
@@ -50,10 +50,10 @@ public final class PostgreSQLComParsePacket extends PostgreSQLCommandPacket {
     }
     
     private List<PostgreSQLBinaryStatementParameterType> getParameterTypes(final PostgreSQLPacketPayload payload) {
-        int parametersCount = payload.readInt2();
-        List<PostgreSQLBinaryStatementParameterType> result = new ArrayList<>(parametersCount); 
-        for (int i = 0; i < parametersCount; i++) {
-            result.add(new PostgreSQLBinaryStatementParameterType(PostgreSQLColumnType.valueOf(payload.readInt4())));
+        int parameterCount = payload.readInt2();
+        List<PostgreSQLBinaryStatementParameterType> result = new ArrayList<>(parameterCount); 
+        for (int i = 0; i < parameterCount; i++) {
+            result.add(new PostgreSQLBinaryStatementParameterType(PostgreSQLBinaryColumnType.valueOf(payload.readInt4())));
         }
         return result;
     }

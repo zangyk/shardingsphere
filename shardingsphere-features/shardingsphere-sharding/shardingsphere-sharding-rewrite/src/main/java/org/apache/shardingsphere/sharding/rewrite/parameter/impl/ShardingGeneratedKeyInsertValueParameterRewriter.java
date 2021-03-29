@@ -20,8 +20,8 @@ package org.apache.shardingsphere.sharding.rewrite.parameter.impl;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import lombok.Setter;
-import org.apache.shardingsphere.sql.parser.binder.statement.SQLStatementContext;
-import org.apache.shardingsphere.sql.parser.binder.statement.dml.InsertStatementContext;
+import org.apache.shardingsphere.infra.binder.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.binder.statement.dml.InsertStatementContext;
 import org.apache.shardingsphere.infra.rewrite.parameter.builder.ParameterBuilder;
 import org.apache.shardingsphere.infra.rewrite.parameter.builder.impl.GroupedParameterBuilder;
 import org.apache.shardingsphere.infra.rewrite.parameter.rewriter.ParameterRewriter;
@@ -45,14 +45,14 @@ public final class ShardingGeneratedKeyInsertValueParameterRewriter implements P
     public void rewrite(final ParameterBuilder parameterBuilder, final InsertStatementContext insertStatementContext, final List<Object> parameters) {
         Preconditions.checkState(insertStatementContext.getGeneratedKeyContext().isPresent());
         ((GroupedParameterBuilder) parameterBuilder).setDerivedColumnName(insertStatementContext.getGeneratedKeyContext().get().getColumnName());
-        Iterator<Comparable<?>> generatedValues = insertStatementContext.getGeneratedKeyContext().get().getGeneratedValues().descendingIterator();
+        Iterator<Comparable<?>> generatedValues = insertStatementContext.getGeneratedKeyContext().get().getGeneratedValues().iterator();
         int count = 0;
-        int parametersCount = 0;
+        int parameterCount = 0;
         for (List<Object> each : insertStatementContext.getGroupedParameters()) {
-            parametersCount += insertStatementContext.getInsertValueContexts().get(count).getParametersCount();
+            parameterCount += insertStatementContext.getInsertValueContexts().get(count).getParameterCount();
             Comparable<?> generatedValue = generatedValues.next();
             if (!each.isEmpty()) {
-                ((GroupedParameterBuilder) parameterBuilder).getParameterBuilders().get(count).addAddedParameters(parametersCount, Lists.newArrayList(generatedValue));
+                ((GroupedParameterBuilder) parameterBuilder).getParameterBuilders().get(count).addAddedParameters(parameterCount, Lists.newArrayList(generatedValue));
             }
             count++;
         }

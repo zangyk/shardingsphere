@@ -28,7 +28,6 @@ import org.apache.shardingsphere.db.protocol.postgresql.packet.command.query.bin
 import org.apache.shardingsphere.db.protocol.postgresql.packet.command.query.binary.bind.protocol.PostgreSQLBinaryProtocolValueFactory;
 import org.apache.shardingsphere.db.protocol.postgresql.payload.PostgreSQLPacketPayload;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -48,7 +47,7 @@ public final class PostgreSQLComBindPacket extends PostgreSQLCommandPacket {
     
     private final boolean binaryRowData;
     
-    public PostgreSQLComBindPacket(final PostgreSQLPacketPayload payload, final int connectionId) throws SQLException {
+    public PostgreSQLComBindPacket(final PostgreSQLPacketPayload payload, final int connectionId) {
         payload.readInt4();
         payload.readStringNul();
         statementId = payload.readStringNul();
@@ -66,11 +65,15 @@ public final class PostgreSQLComBindPacket extends PostgreSQLCommandPacket {
         }
     }
     
-    private List<Object> getParameters(final PostgreSQLPacketPayload payload, final List<PostgreSQLBinaryStatementParameterType> parameterTypes) throws SQLException {
-        int parametersCount = payload.readInt2();
-        List<Object> result = new ArrayList<>(parametersCount);
-        for (int parameterIndex = 0; parameterIndex < parametersCount; parameterIndex++) {
-            payload.readInt4();
+    private List<Object> getParameters(final PostgreSQLPacketPayload payload, final List<PostgreSQLBinaryStatementParameterType> parameterTypes) {
+        int parameterCount = payload.readInt2();
+        List<Object> result = new ArrayList<>(parameterCount);
+        for (int parameterIndex = 0; parameterIndex < parameterCount; parameterIndex++) {
+            int paramValueLen = payload.readInt4();
+            if (-1 == paramValueLen) {
+                result.add(null);
+                continue;
+            }
             PostgreSQLBinaryProtocolValue binaryProtocolValue = PostgreSQLBinaryProtocolValueFactory.getBinaryProtocolValue(parameterTypes.get(parameterIndex).getColumnType());
             result.add(binaryProtocolValue.read(payload));
         }

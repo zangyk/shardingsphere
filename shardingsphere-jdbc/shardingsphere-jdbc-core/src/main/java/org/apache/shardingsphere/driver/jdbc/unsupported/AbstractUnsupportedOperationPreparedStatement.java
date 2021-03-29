@@ -20,7 +20,6 @@ package org.apache.shardingsphere.driver.jdbc.unsupported;
 import org.apache.shardingsphere.driver.jdbc.adapter.AbstractStatementAdapter;
 
 import java.io.Reader;
-import java.sql.Array;
 import java.sql.NClob;
 import java.sql.PreparedStatement;
 import java.sql.Ref;
@@ -35,7 +34,7 @@ import java.sql.SQLFeatureNotSupportedException;
  */
 public abstract class AbstractUnsupportedOperationPreparedStatement extends AbstractStatementAdapter implements PreparedStatement {
     
-    public AbstractUnsupportedOperationPreparedStatement() {
+    protected AbstractUnsupportedOperationPreparedStatement() {
         super(PreparedStatement.class);
     }
     
@@ -72,11 +71,6 @@ public abstract class AbstractUnsupportedOperationPreparedStatement extends Abst
     @Override
     public final void setNCharacterStream(final int parameterIndex, final Reader x, final long length) throws SQLException {
         throw new SQLFeatureNotSupportedException("setNCharacterStream");
-    }
-    
-    @Override
-    public final void setArray(final int parameterIndex, final Array x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("setArray");
     }
     
     @Override

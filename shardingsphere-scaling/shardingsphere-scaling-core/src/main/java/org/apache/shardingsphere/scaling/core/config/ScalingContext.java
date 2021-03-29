@@ -17,45 +17,49 @@
 
 package org.apache.shardingsphere.scaling.core.config;
 
-import org.apache.shardingsphere.scaling.core.execute.engine.ShardingScalingExecuteEngine;
-
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.apache.shardingsphere.scaling.core.executor.engine.ExecuteEngine;
 
 /**
- * Scaling context.
+ * ShardingSphere-Scaling context.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 @Getter
 public final class ScalingContext {
-
+    
     private static final ScalingContext INSTANCE = new ScalingContext();
-
-    private ServerConfiguration serverConfiguration;
     
-    private ShardingScalingExecuteEngine taskExecuteEngine;
+    private ServerConfiguration serverConfig;
     
-    private ShardingScalingExecuteEngine importerExecuteEngine;
-
+    private ExecuteEngine inventoryDumperExecuteEngine;
+    
+    private ExecuteEngine incrementalDumperExecuteEngine;
+    
+    private ExecuteEngine importerExecuteEngine;
+    
     /**
-     * Get instance of Sharding-Scaling's context.
+     * Get instance of ShardingSphere-Scaling's context.
      *
-     * @return instance of Sharding-Scaling's context.
+     * @return instance of ShardingSphere-Scaling's context.
      */
     public static ScalingContext getInstance() {
         return INSTANCE;
     }
-
+    
     /**
-     * Initialize  Scaling context.
+     * Initialize ShardingSphere-Scaling context.
      *
-     * @param serverConfiguration serverConfiguration
+     * @param serverConfig server configuration
      */
-    public void init(final ServerConfiguration serverConfiguration) {
-        this.serverConfiguration = serverConfiguration;
-        this.taskExecuteEngine = new ShardingScalingExecuteEngine(serverConfiguration.getWorkerThread());
-        this.importerExecuteEngine = new ShardingScalingExecuteEngine(serverConfiguration.getWorkerThread());
+    public void init(final ServerConfiguration serverConfig) {
+        if (null != this.serverConfig) {
+            return;
+        }
+        this.serverConfig = serverConfig;
+        inventoryDumperExecuteEngine = ExecuteEngine.newFixedThreadInstance(serverConfig.getWorkerThread());
+        incrementalDumperExecuteEngine = ExecuteEngine.newCachedThreadInstance();
+        importerExecuteEngine = ExecuteEngine.newFixedThreadInstance(serverConfig.getWorkerThread());
     }
-
 }

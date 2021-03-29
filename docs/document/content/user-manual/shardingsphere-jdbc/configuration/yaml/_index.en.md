@@ -14,7 +14,7 @@ YAML configuration is the most common configuration mode, which can omit the com
 
 ### Create Simple DataSource
 
-The ShardingSphereDataSource created by YamlOrchestrationShardingSphereDataSourceFactory implements the standard JDBC DataSource interface.
+The ShardingSphereDataSource created by YamlGovernanceShardingSphereDataSourceFactory implements the standard JDBC DataSource interface.
 
 ```java
 // Indicate YAML file path
@@ -23,16 +23,16 @@ File yamlFile = // ...
 DataSource dataSource = YamlShardingSphereDataSourceFactory.createDataSource(yamlFile);
 ```
 
-### Create Orchestration DataSource
+### Create Governance DataSource
 
-The OrchestrationShardingSphereDataSource created by YamlOrchestrationShardingSphereDataSourceFactory implements the standard JDBC DataSource interface.
+The GovernanceShardingSphereDataSource created by YamlGovernanceShardingSphereDataSourceFactory implements the standard JDBC DataSource interface.
 
 
 ```java
 // Indicate YAML file path
 File yamlFile = // ...
 
-DataSource dataSource = YamlOrchestrationShardingSphereDataSourceFactory.createDataSource(yamlFile);
+DataSource dataSource = YamlGovernanceShardingSphereDataSourceFactory.createDataSource(yamlFile);
 ```
 
 ### Use DataSource
@@ -62,7 +62,7 @@ try (
 ### Data Source Configuration
 
 It is divided into single data source configuration and multi data source configuration.
-Single data source configuration is used for data encryption rules; and multi data source configuration is used for fragmentation, read-write separation and other rules.
+Single data source configuration used for data encryption rules; and multi data source configuration used for fragmentation, replica query and other rules.
 If features such as encryption and sharding are used in combination, a multi data source configuration should be used.
 
 #### Single Data Source Configuration

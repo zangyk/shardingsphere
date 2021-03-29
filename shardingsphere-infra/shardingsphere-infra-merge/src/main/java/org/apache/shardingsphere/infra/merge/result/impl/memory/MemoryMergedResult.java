@@ -17,12 +17,11 @@
 
 package org.apache.shardingsphere.infra.merge.result.impl.memory;
 
-import lombok.RequiredArgsConstructor;
-import org.apache.shardingsphere.infra.executor.sql.QueryResult;
+import org.apache.shardingsphere.infra.executor.sql.execute.result.query.QueryResult;
 import org.apache.shardingsphere.infra.merge.result.MergedResult;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
-import org.apache.shardingsphere.sql.parser.binder.metadata.schema.SchemaMetaData;
-import org.apache.shardingsphere.sql.parser.binder.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.metadata.schema.ShardingSphereSchema;
+import org.apache.shardingsphere.infra.binder.statement.SQLStatementContext;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -40,7 +39,6 @@ import java.util.List;
  *
  * @param <T> type of rule
  */
-@RequiredArgsConstructor
 public abstract class MemoryMergedResult<T extends ShardingSphereRule> implements MergedResult {
     
     private final Iterator<MemoryQueryResultRow> memoryResultSetRows;
@@ -49,15 +47,15 @@ public abstract class MemoryMergedResult<T extends ShardingSphereRule> implement
     
     private boolean wasNull;
     
-    protected MemoryMergedResult(final T rule, final SchemaMetaData schemaMetaData, final SQLStatementContext sqlStatementContext, final List<QueryResult> queryResults) throws SQLException {
-        List<MemoryQueryResultRow> memoryQueryResultRowList = init(rule, schemaMetaData, sqlStatementContext, queryResults);
+    protected MemoryMergedResult(final T rule, final ShardingSphereSchema schema, final SQLStatementContext sqlStatementContext, final List<QueryResult> queryResults) throws SQLException {
+        List<MemoryQueryResultRow> memoryQueryResultRowList = init(rule, schema, sqlStatementContext, queryResults);
         memoryResultSetRows = memoryQueryResultRowList.iterator();
         if (!memoryQueryResultRowList.isEmpty()) {
             currentResultSetRow = memoryQueryResultRowList.get(0);
         }
     }
     
-    protected abstract List<MemoryQueryResultRow> init(T rule, SchemaMetaData schemaMetaData, SQLStatementContext sqlStatementContext, List<QueryResult> queryResults) throws SQLException;
+    protected abstract List<MemoryQueryResultRow> init(T rule, ShardingSphereSchema schema, SQLStatementContext sqlStatementContext, List<QueryResult> queryResults) throws SQLException;
     
     @Override
     public final boolean next() {
@@ -71,7 +69,7 @@ public abstract class MemoryMergedResult<T extends ShardingSphereRule> implement
     @Override
     public final Object getValue(final int columnIndex, final Class<?> type) throws SQLException {
         if (Blob.class == type || Clob.class == type || Reader.class == type || InputStream.class == type || SQLXML.class == type) {
-            throw new SQLFeatureNotSupportedException();
+            throw new SQLFeatureNotSupportedException(String.format("Get value from `%s`", type.getName()));
         }
         Object result = currentResultSetRow.getCell(columnIndex);
         wasNull = null == result;
@@ -88,7 +86,7 @@ public abstract class MemoryMergedResult<T extends ShardingSphereRule> implement
     
     @Override
     public final InputStream getInputStream(final int columnIndex, final String type) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException(String.format("Get input stream from `%s`", type));
     }
     
     @Override

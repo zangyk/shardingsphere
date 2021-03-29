@@ -19,6 +19,7 @@ package org.apache.shardingsphere.infra.database.type.dialect;
 
 import org.apache.shardingsphere.infra.database.metadata.dialect.MySQLDataSourceMetaData;
 import org.apache.shardingsphere.infra.database.type.DatabaseType;
+import org.apache.shardingsphere.sql.parser.sql.common.constant.QuoteCharacter;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -34,8 +35,13 @@ public final class MySQLDatabaseType implements DatabaseType {
     }
     
     @Override
+    public QuoteCharacter getQuoteCharacter() {
+        return QuoteCharacter.BACK_QUOTE;
+    }
+    
+    @Override
     public Collection<String> getJdbcUrlPrefixes() {
-        return Arrays.asList(String.format("jdbc:%s:", getName().toLowerCase()), "jdbc:mysqlx:");
+        return Arrays.asList("jdbc:mysql:", "jdbc:mysqlx:");
     }
     
     @Override

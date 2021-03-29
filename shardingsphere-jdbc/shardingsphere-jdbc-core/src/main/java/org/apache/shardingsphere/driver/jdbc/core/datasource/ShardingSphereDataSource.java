@@ -17,30 +17,27 @@
 
 package org.apache.shardingsphere.driver.jdbc.core.datasource;
 
-import com.google.common.base.Preconditions;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import org.apache.shardingsphere.driver.jdbc.core.connection.ShardingSphereConnection;
 import org.apache.shardingsphere.driver.jdbc.unsupported.AbstractUnsupportedOperationDataSource;
 import org.apache.shardingsphere.infra.config.RuleConfiguration;
+import org.apache.shardingsphere.infra.config.properties.ConfigurationPropertyKey;
+import org.apache.shardingsphere.infra.context.metadata.MetaDataContexts;
+import org.apache.shardingsphere.infra.context.metadata.MetaDataContextsBuilder;
 import org.apache.shardingsphere.infra.database.DefaultSchema;
 import org.apache.shardingsphere.infra.database.type.DatabaseType;
-import org.apache.shardingsphere.infra.database.type.DatabaseTypes;
-import org.apache.shardingsphere.kernel.context.SchemaContexts;
-import org.apache.shardingsphere.kernel.context.SchemaContextsBuilder;
+import org.apache.shardingsphere.transaction.ShardingTransactionManagerEngine;
+import org.apache.shardingsphere.transaction.context.TransactionContexts;
+import org.apache.shardingsphere.transaction.context.impl.StandardTransactionContexts;
 import org.apache.shardingsphere.transaction.core.TransactionTypeHolder;
 
 import javax.sql.DataSource;
-import java.io.PrintWriter;
-import java.lang.reflect.Method;
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
-import java.util.logging.Logger;
 
 /**
  * ShardingSphere data source.
@@ -49,44 +46,26 @@ import java.util.logging.Logger;
 @Getter
 public final class ShardingSphereDataSource extends AbstractUnsupportedOperationDataSource implements AutoCloseable {
     
-    private final SchemaContexts schemaContexts;
+    private final MetaDataContexts metaDataContexts;
     
-    @Setter
-    private PrintWriter logWriter = new PrintWriter(System.out);
+    private final TransactionContexts transactionContexts;
     
     public ShardingSphereDataSource(final Map<String, DataSource> dataSourceMap, final Collection<RuleConfiguration> configurations, final Properties props) throws SQLException {
-        DatabaseType databaseType = createDatabaseType(dataSourceMap);
-        schemaContexts = new SchemaContextsBuilder(Collections.singletonMap(DefaultSchema.LOGIC_NAME, dataSourceMap), 
-                databaseType, Collections.singletonMap(DefaultSchema.LOGIC_NAME, configurations), props).build();
+        metaDataContexts = new MetaDataContextsBuilder(
+                Collections.singletonMap(DefaultSchema.LOGIC_NAME, dataSourceMap), Collections.singletonMap(DefaultSchema.LOGIC_NAME, configurations), props).build();
+        String xaTransactionMangerType = metaDataContexts.getProps().getValue(ConfigurationPropertyKey.XA_TRANSACTION_MANAGER_TYPE);
+        transactionContexts = createTransactionContexts(metaDataContexts.getDefaultMetaData().getResource().getDatabaseType(), dataSourceMap, xaTransactionMangerType);
     }
     
-    private DatabaseType createDatabaseType(final Map<String, DataSource> dataSourceMap) throws SQLException {
-        DatabaseType result = null;
-        for (DataSource each : dataSourceMap.values()) {
-            DatabaseType databaseType = createDatabaseType(each);
-            Preconditions.checkState(null == result || result == databaseType, String.format("Database type inconsistent with '%s' and '%s'", result, databaseType));
-            result = databaseType;
-        }
-        return result;
-    }
-    
-    private DatabaseType createDatabaseType(final DataSource dataSource) throws SQLException {
-        if (dataSource instanceof ShardingSphereDataSource) {
-            return ((ShardingSphereDataSource) dataSource).schemaContexts.getSchemaContexts().get(DefaultSchema.LOGIC_NAME).getSchema().getDatabaseType();
-        }
-        try (Connection connection = dataSource.getConnection()) {
-            return DatabaseTypes.getDatabaseTypeByURL(connection.getMetaData().getURL());
-        }
-    }
-    
-    @Override
-    public Logger getParentLogger() {
-        return Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
+    private TransactionContexts createTransactionContexts(final DatabaseType databaseType, final Map<String, DataSource> dataSourceMap, final String xaTransactionMangerType) {
+        ShardingTransactionManagerEngine engine = new ShardingTransactionManagerEngine();
+        engine.init(databaseType, dataSourceMap, xaTransactionMangerType);
+        return new StandardTransactionContexts(Collections.singletonMap(DefaultSchema.LOGIC_NAME, engine));
     }
     
     @Override
     public ShardingSphereConnection getConnection() {
-        return new ShardingSphereConnection(getDataSourceMap(), schemaContexts, TransactionTypeHolder.get());
+        return new ShardingSphereConnection(getDataSourceMap(), metaDataContexts, transactionContexts, TransactionTypeHolder.get());
     }
     
     @Override
@@ -100,11 +79,11 @@ public final class ShardingSphereDataSource extends AbstractUnsupportedOperation
      * @return data sources
      */
     public Map<String, DataSource> getDataSourceMap() {
-        return schemaContexts.getSchemaContexts().get(DefaultSchema.LOGIC_NAME).getSchema().getDataSources();
+        return metaDataContexts.getDefaultMetaData().getResource().getDataSources();
     }
     
     @Override
-    public void close() {
+    public void close() throws Exception {
         close(getDataSourceMap().keySet());
     }
     
@@ -112,18 +91,18 @@ public final class ShardingSphereDataSource extends AbstractUnsupportedOperation
      * Close dataSources.
      * 
      * @param dataSourceNames data source names
+     * @throws Exception exception
      */
-    public void close(final Collection<String> dataSourceNames) {
-        dataSourceNames.forEach(each -> close(getDataSourceMap().get(each)));
-        schemaContexts.close();
+    public void close(final Collection<String> dataSourceNames) throws Exception {
+        for (String each : dataSourceNames) {
+            close(getDataSourceMap().get(each));
+        }
+        metaDataContexts.close();
     }
     
-    private void close(final DataSource dataSource) {
-        try {
-            Method method = dataSource.getClass().getDeclaredMethod("close");
-            method.setAccessible(true);
-            method.invoke(dataSource);
-        } catch (final ReflectiveOperationException ignored) {
+    private void close(final DataSource dataSource) throws Exception {
+        if (dataSource instanceof AutoCloseable) {
+            ((AutoCloseable) dataSource).close();
         }
     }
 }

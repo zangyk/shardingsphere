@@ -19,30 +19,16 @@ package org.apache.shardingsphere.scaling.core.config;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.shardingsphere.scaling.core.config.datasource.ScalingDataSourceConfigurationWrap;
 
 /**
  * Rule configuration.
  */
-@Setter
 @Getter
+@Setter
 public final class RuleConfiguration {
     
-    private String sourceDatasource;
+    private ScalingDataSourceConfigurationWrap source;
     
-    private String sourceRule;
-    
-    private YamlDataSourceParameter destinationDataSources;
-    
-    @Setter
-    @Getter
-    public static final class YamlDataSourceParameter {
-        
-        private String name;
-        
-        private String url;
-        
-        private String username;
-        
-        private String password;
-    }
+    private ScalingDataSourceConfigurationWrap target;
 }
