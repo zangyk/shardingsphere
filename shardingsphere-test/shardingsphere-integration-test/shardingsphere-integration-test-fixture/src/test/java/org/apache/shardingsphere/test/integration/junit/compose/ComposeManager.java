@@ -20,7 +20,6 @@ package org.apache.shardingsphere.test.integration.junit.compose;
 import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.test.integration.env.EnvironmentType;
 import org.apache.shardingsphere.test.integration.env.IntegrationTestEnvironment;
-import org.apache.shardingsphere.test.integration.env.database.DatabaseEnvironmentManager;
 import org.apache.shardingsphere.test.integration.junit.param.model.ParameterizedArray;
 import org.junit.rules.ExternalResource;
 
@@ -45,7 +44,13 @@ public final class ComposeManager extends ExternalResource {
         if (composeMap.containsKey(key)) {
             return composeMap.get(key);
         }
-        ContainerCompose result = new ContainerCompose(suiteName, parameterizedArray);
+        ContainerCompose result;
+        // TODO fix sharding_governance
+        if ("sharding_governance".equals(parameterizedArray.getScenario())) {
+            result = new GovernanceContainerCompose(suiteName, parameterizedArray);
+        } else {
+            result = new SimpleContainerCompose(suiteName, parameterizedArray);
+        }
         composeMap.put(key, result);
         return result;
     }
@@ -55,10 +60,8 @@ public final class ComposeManager extends ExternalResource {
     }
     
     @Override
-    protected void before() throws Throwable {
-        if (EnvironmentType.DOCKER != IntegrationTestEnvironment.getInstance().getEnvType()) {
-            DatabaseEnvironmentManager.executeInitSQLs();
-        } else {
+    protected void before() {
+        if (EnvironmentType.DOCKER == IntegrationTestEnvironment.getInstance().getEnvType()) {
             composeMap.values().forEach(each -> {
                 each.start();
                 each.waitUntilReady();

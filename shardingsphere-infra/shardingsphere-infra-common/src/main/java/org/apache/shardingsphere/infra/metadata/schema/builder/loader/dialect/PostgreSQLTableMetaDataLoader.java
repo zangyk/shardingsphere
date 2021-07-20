@@ -19,6 +19,7 @@ package org.apache.shardingsphere.infra.metadata.schema.builder.loader.dialect;
 
 import org.apache.shardingsphere.infra.metadata.schema.builder.loader.DataTypeLoader;
 import org.apache.shardingsphere.infra.metadata.schema.builder.spi.DialectTableMetaDataLoader;
+import org.apache.shardingsphere.infra.metadata.schema.builder.util.IndexMetaDataUtil;
 import org.apache.shardingsphere.infra.metadata.schema.model.ColumnMetaData;
 import org.apache.shardingsphere.infra.metadata.schema.model.IndexMetaData;
 import org.apache.shardingsphere.infra.metadata.schema.model.TableMetaData;
@@ -37,6 +38,8 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 /**
@@ -44,7 +47,8 @@ import java.util.stream.Collectors;
  */
 public final class PostgreSQLTableMetaDataLoader implements DialectTableMetaDataLoader {
     
-    private static final String BASIC_TABLE_META_DATA_SQL = "SELECT table_name, column_name, data_type, udt_name, column_default FROM information_schema.columns WHERE table_schema = ?";
+    private static final String BASIC_TABLE_META_DATA_SQL = "SELECT table_name, column_name, ordinal_position, data_type, udt_name, column_default "
+            + "FROM information_schema.columns WHERE table_schema = ?";
     
     private static final String TABLE_META_DATA_SQL_WITH_EXISTED_TABLES = BASIC_TABLE_META_DATA_SQL + " AND table_name NOT IN (%s)";
     
@@ -64,13 +68,13 @@ public final class PostgreSQLTableMetaDataLoader implements DialectTableMetaData
             if (null == indexMetaDataList) {
                 indexMetaDataList = Collections.emptyList();
             }
-            result.put(entry.getKey(), new TableMetaData(entry.getValue(), indexMetaDataList));
+            result.put(entry.getKey(), new TableMetaData(entry.getKey(), entry.getValue(), indexMetaDataList));
         }
         return result;
     }
     
     private Map<String, Collection<ColumnMetaData>> loadColumnMetaDataMap(final DataSource dataSource, final Collection<String> existedTables) throws SQLException {
-        Map<String, Collection<ColumnMetaData>> result = new HashMap<>();
+        Map<String, SortedMap<Integer, ColumnMetaData>> result = new HashMap<>();
         try (Connection connection = dataSource.getConnection();
              PreparedStatement preparedStatement = connection.prepareStatement(getTableMetaDataSQL(existedTables))) {
             Map<String, Integer> dataTypes = DataTypeLoader.load(connection.getMetaData());
@@ -79,13 +83,13 @@ public final class PostgreSQLTableMetaDataLoader implements DialectTableMetaData
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 while (resultSet.next()) {
                     String tableName = resultSet.getString("table_name");
-                    Collection<ColumnMetaData> columns = result.computeIfAbsent(tableName, key -> new LinkedList<>());
+                    SortedMap<Integer, ColumnMetaData> columns = result.computeIfAbsent(tableName, key -> new TreeMap<>());
                     ColumnMetaData columnMetaData = loadColumnMetaData(dataTypes, primaryKeys, resultSet);
-                    columns.add(columnMetaData);
+                    columns.put(resultSet.getInt("ordinal_position"), columnMetaData);
                 }
             }
         }
-        return result;
+        return result.entrySet().stream().collect(Collectors.toMap(Entry::getKey, entry -> entry.getValue().values()));
     }
     
     private Set<String> loadPrimaryKeys(final Connection connection) throws SQLException {
@@ -130,7 +134,7 @@ public final class PostgreSQLTableMetaDataLoader implements DialectTableMetaData
                     String tableName = resultSet.getString("tablename");
                     Collection<IndexMetaData> indexes = result.computeIfAbsent(tableName, k -> new LinkedList<>());
                     String indexName = resultSet.getString("indexname");
-                    indexes.add(new IndexMetaData(indexName));
+                    indexes.add(new IndexMetaData(IndexMetaDataUtil.getLogicIndexName(indexName, tableName)));
                 }
             }
         }

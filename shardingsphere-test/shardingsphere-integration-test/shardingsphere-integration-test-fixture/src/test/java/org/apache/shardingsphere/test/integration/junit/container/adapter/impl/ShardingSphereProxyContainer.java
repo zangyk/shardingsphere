@@ -20,6 +20,7 @@ package org.apache.shardingsphere.test.integration.junit.container.adapter.impl;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.shardingsphere.test.integration.env.datasource.DataSourceEnvironmentUtil;
 import org.apache.shardingsphere.test.integration.junit.container.adapter.ShardingSphereAdapterContainer;
 import org.apache.shardingsphere.test.integration.junit.param.model.ParameterizedArray;
 import org.testcontainers.containers.BindMode;
@@ -43,7 +44,11 @@ public final class ShardingSphereProxyContainer extends ShardingSphereAdapterCon
     private final AtomicReference<DataSource> dataSourceProvider = new AtomicReference<>();
     
     public ShardingSphereProxyContainer(final ParameterizedArray parameterizedArray) {
-        super("shardingsphere-proxy", "apache/shardingsphere-proxy-test", parameterizedArray);
+        this(null, parameterizedArray);
+    }
+    
+    public ShardingSphereProxyContainer(final String dockerName, final ParameterizedArray parameterizedArray) {
+        super(Objects.isNull(dockerName) ? "ShardingSphere-Proxy" : dockerName, "apache/shardingsphere-proxy-test", parameterizedArray);
     }
     
     /**
@@ -82,7 +87,7 @@ public final class ShardingSphereProxyContainer extends ShardingSphereAdapterCon
     
     @Override
     protected void configure() {
-        withConfMapping("/docker/" + getParameterizedArray().getScenario() + "/proxy/conf");
+        withConfMapping("/docker/" + getParameterizedArray().getScenario() + "/" + getParameterizedArray().getDatabaseType().getName().toLowerCase() + "/proxy/conf");
         setWaitStrategy(new LogMessageWaitStrategy().withRegEx(".*ShardingSphere-Proxy start success.*"));
         super.configure();
     }
@@ -107,19 +112,17 @@ public final class ShardingSphereProxyContainer extends ShardingSphereAdapterCon
     }
     
     private DataSource createDataSource() {
+        String databaseType = getParameterizedArray().getDatabaseType().getName();
         HikariConfig result = new HikariConfig();
-        result.setDriverClassName("com.mysql.jdbc.Driver");
-        result.setJdbcUrl(getURL());
-        result.setUsername(getAuthentication().getUser());
+        result.setDriverClassName(DataSourceEnvironmentUtil.getDriverClassName(databaseType));
+        result.setJdbcUrl(DataSourceEnvironmentUtil.getURL(databaseType, getHost(), getMappedPort(3307), getParameterizedArray().getScenario()));
+        result.setUsername(getAuthentication().getUsername());
         result.setPassword(getAuthentication().getPassword());
         result.setMaximumPoolSize(2);
         result.setTransactionIsolation("TRANSACTION_READ_COMMITTED");
-        result.setConnectionInitSql("SET sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''))");
+        if ("MySQL".equals(databaseType)) {
+            result.setConnectionInitSql("SET sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''))");
+        }
         return new HikariDataSource(result);
-    }
-    
-    protected String getURL() {
-        return String.format("jdbc:mysql://%s:%s/%s?useServerPrepStmts=true&serverTimezone=UTC&useSSL=false&useLocalSessionState=true&characterEncoding=utf-8",
-                getHost(), getMappedPort(3307), getParameterizedArray().getScenario());
     }
 }

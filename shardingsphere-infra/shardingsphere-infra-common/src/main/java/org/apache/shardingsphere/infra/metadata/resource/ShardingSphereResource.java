@@ -48,8 +48,17 @@ public final class ShardingSphereResource {
      * @return all instance data sources
      */
     public Collection<DataSource> getAllInstanceDataSources() {
-        return dataSources.entrySet().stream().filter(entry ->
-                dataSourcesMetaData.getAllInstanceDataSourceNames().contains(entry.getKey())).map(Map.Entry::getValue).collect(Collectors.toSet());
+        return dataSources.entrySet().stream().filter(entry -> dataSourcesMetaData.getAllInstanceDataSourceNames().contains(entry.getKey())).map(Map.Entry::getValue).collect(Collectors.toSet());
+    }
+    
+    /**
+     * Get not existed resource name.
+     * 
+     * @param resourceNames resource names to be judged
+     * @return not existed resource names
+     */
+    public Collection<String> getNotExistedResources(final Collection<String> resourceNames) {
+        return resourceNames.stream().filter(each -> !dataSources.containsKey(each)).collect(Collectors.toSet());
     }
     
     /**
@@ -59,7 +68,7 @@ public final class ShardingSphereResource {
      * @throws SQLException exception
      */
     public void close(final Collection<String> dataSources) throws SQLException {
-        for (String each :dataSources) {
+        for (String each : dataSources) {
             close(this.dataSources.get(each));
         }
     }

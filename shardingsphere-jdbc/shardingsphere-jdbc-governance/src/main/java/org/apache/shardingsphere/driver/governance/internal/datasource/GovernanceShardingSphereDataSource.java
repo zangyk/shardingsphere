@@ -21,13 +21,17 @@ import lombok.Getter;
 import org.apache.shardingsphere.driver.governance.internal.state.DriverStateContext;
 import org.apache.shardingsphere.driver.jdbc.unsupported.AbstractUnsupportedOperationDataSource;
 import org.apache.shardingsphere.governance.context.metadata.GovernanceMetaDataContexts;
-import org.apache.shardingsphere.governance.core.facade.GovernanceFacade;
-import org.apache.shardingsphere.governance.core.registry.RegistryCenter;
+import org.apache.shardingsphere.governance.core.GovernanceFacade;
+import org.apache.shardingsphere.governance.core.registry.RegistryCenterRepositoryFactory;
 import org.apache.shardingsphere.governance.repository.api.config.GovernanceConfiguration;
+import org.apache.shardingsphere.governance.repository.spi.RegistryCenterRepository;
 import org.apache.shardingsphere.infra.config.RuleConfiguration;
 import org.apache.shardingsphere.infra.config.datasource.DataSourceConfiguration;
 import org.apache.shardingsphere.infra.config.datasource.DataSourceConverter;
+import org.apache.shardingsphere.infra.config.persist.ConfigCenter;
 import org.apache.shardingsphere.infra.config.properties.ConfigurationPropertyKey;
+import org.apache.shardingsphere.infra.config.scope.GlobalRuleConfiguration;
+import org.apache.shardingsphere.infra.config.scope.SchemaRuleConfiguration;
 import org.apache.shardingsphere.infra.context.metadata.MetaDataContexts;
 import org.apache.shardingsphere.infra.context.metadata.MetaDataContextsBuilder;
 import org.apache.shardingsphere.infra.context.metadata.impl.StandardMetaDataContexts;
@@ -42,26 +46,30 @@ import javax.sql.DataSource;
 import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.SQLException;
-
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 /**
  * Governance ShardingSphere data source.
  */
-@Getter
 public final class GovernanceShardingSphereDataSource extends AbstractUnsupportedOperationDataSource implements AutoCloseable {
     
+    private final RegistryCenterRepository repository;
+    
+    @Getter
     private final MetaDataContexts metaDataContexts;
     
+    @Getter
     private final TransactionContexts transactionContexts;
     
     public GovernanceShardingSphereDataSource(final GovernanceConfiguration governanceConfig) throws SQLException {
-        GovernanceFacade governanceFacade = createGovernanceFacade(governanceConfig);
-        metaDataContexts = new GovernanceMetaDataContexts(createMetaDataContexts(governanceFacade), governanceFacade);
+        repository = RegistryCenterRepositoryFactory.newInstance(governanceConfig);
+        ConfigCenter configCenter = new ConfigCenter(repository);
+        GovernanceFacade governanceFacade = createGovernanceFacade();
+        metaDataContexts = new GovernanceMetaDataContexts(createMetaDataContexts(configCenter), configCenter, governanceFacade, repository);
         String xaTransactionMangerType = metaDataContexts.getProps().getValue(ConfigurationPropertyKey.XA_TRANSACTION_MANAGER_TYPE);
         transactionContexts = createTransactionContexts(metaDataContexts.getDefaultMetaData().getResource().getDatabaseType(),
                 metaDataContexts.getDefaultMetaData().getResource().getDataSources(), xaTransactionMangerType);
@@ -69,35 +77,35 @@ public final class GovernanceShardingSphereDataSource extends AbstractUnsupporte
     
     public GovernanceShardingSphereDataSource(final Map<String, DataSource> dataSourceMap, final Collection<RuleConfiguration> ruleConfigs, 
                                               final Properties props, final GovernanceConfiguration governanceConfig) throws SQLException {
-        GovernanceFacade governanceFacade = createGovernanceFacade(governanceConfig);
-        metaDataContexts = new GovernanceMetaDataContexts(createMetaDataContexts(dataSourceMap, ruleConfigs, props), governanceFacade);
+        repository = RegistryCenterRepositoryFactory.newInstance(governanceConfig);
+        ConfigCenter configCenter = new ConfigCenter(repository);
+        GovernanceFacade governanceFacade = createGovernanceFacade();
+        metaDataContexts = new GovernanceMetaDataContexts(createMetaDataContexts(dataSourceMap, ruleConfigs, props), configCenter, governanceFacade, repository);
         String xaTransactionMangerType = metaDataContexts.getProps().getValue(ConfigurationPropertyKey.XA_TRANSACTION_MANAGER_TYPE);
         transactionContexts = createTransactionContexts(metaDataContexts.getDefaultMetaData().getResource().getDatabaseType(),
                 metaDataContexts.getDefaultMetaData().getResource().getDataSources(), xaTransactionMangerType);
-        uploadLocalConfiguration(governanceFacade);
+        uploadLocalConfiguration(configCenter, governanceFacade, ruleConfigs, governanceConfig.isOverwrite());
     }
     
-    private GovernanceFacade createGovernanceFacade(final GovernanceConfiguration config) {
+    private GovernanceFacade createGovernanceFacade() {
         GovernanceFacade result = new GovernanceFacade();
-        result.init(config, Collections.singletonList(DefaultSchema.LOGIC_NAME));
-        result.onlineInstance();
+        result.init(repository);
+        result.onlineInstance(Collections.singletonList(DefaultSchema.LOGIC_NAME));
         return result;
     }
     
-    private StandardMetaDataContexts createMetaDataContexts(final GovernanceFacade governanceFacade) throws SQLException {
-        RegistryCenter registryCenter = governanceFacade.getRegistryCenter();
-        Map<String, DataSourceConfiguration> dataSourceConfigs = registryCenter.loadDataSourceConfigurations(DefaultSchema.LOGIC_NAME);
-        Collection<RuleConfiguration> ruleConfigurations = registryCenter.loadRuleConfigurations(DefaultSchema.LOGIC_NAME);
+    private StandardMetaDataContexts createMetaDataContexts(final ConfigCenter configCenter) throws SQLException {
+        Map<String, DataSourceConfiguration> dataSourceConfigs = configCenter.getDataSourceService().load(DefaultSchema.LOGIC_NAME);
+        Collection<RuleConfiguration> ruleConfigurations = configCenter.getSchemaRuleService().load(DefaultSchema.LOGIC_NAME);
         Map<String, DataSource> dataSourceMap = DataSourceConverter.getDataSourceMap(dataSourceConfigs);
-        MetaDataContextsBuilder metaDataContextsBuilder = new MetaDataContextsBuilder(
-                Collections.singletonMap(DefaultSchema.LOGIC_NAME, dataSourceMap), 
-                Collections.singletonMap(DefaultSchema.LOGIC_NAME, ruleConfigurations), new LinkedList<>(), registryCenter.loadProperties());
+        MetaDataContextsBuilder metaDataContextsBuilder = new MetaDataContextsBuilder(Collections.singletonMap(DefaultSchema.LOGIC_NAME, dataSourceMap), 
+                Collections.singletonMap(DefaultSchema.LOGIC_NAME, ruleConfigurations), configCenter.getGlobalRuleService().load(), configCenter.getPropsService().load());
         return metaDataContextsBuilder.build();
     }
     
     private StandardMetaDataContexts createMetaDataContexts(final Map<String, DataSource> dataSourceMap, final Collection<RuleConfiguration> ruleConfigs, final Properties props) throws SQLException {
         MetaDataContextsBuilder metaDataContextsBuilder = new MetaDataContextsBuilder(
-                Collections.singletonMap(DefaultSchema.LOGIC_NAME, dataSourceMap), Collections.singletonMap(DefaultSchema.LOGIC_NAME, ruleConfigs), new LinkedList<>(), props);
+                Collections.singletonMap(DefaultSchema.LOGIC_NAME, dataSourceMap), Collections.singletonMap(DefaultSchema.LOGIC_NAME, ruleConfigs), props);
         return metaDataContextsBuilder.build();
     }
     
@@ -107,11 +115,13 @@ public final class GovernanceShardingSphereDataSource extends AbstractUnsupporte
         return new StandardTransactionContexts(Collections.singletonMap(DefaultSchema.LOGIC_NAME, engine));
     }
     
-    private void uploadLocalConfiguration(final GovernanceFacade governanceFacade) {
+    private void uploadLocalConfiguration(final ConfigCenter configCenter, final GovernanceFacade governanceFacade, final Collection<RuleConfiguration> ruleConfigs, final boolean isOverwrite) {
         Map<String, DataSourceConfiguration> dataSourceConfigs = DataSourceConverter.getDataSourceConfigurationMap(metaDataContexts.getDefaultMetaData().getResource().getDataSources());
-        Collection<RuleConfiguration> ruleConfigurations = metaDataContexts.getDefaultMetaData().getRuleMetaData().getConfigurations();
-        governanceFacade.onlineInstance(Collections.singletonMap(DefaultSchema.LOGIC_NAME, dataSourceConfigs),
-                Collections.singletonMap(DefaultSchema.LOGIC_NAME, ruleConfigurations), Collections.emptyList(), metaDataContexts.getProps().getProps());
+        Collection<RuleConfiguration> schemaRuleConfigs = ruleConfigs.stream().filter(each -> each instanceof SchemaRuleConfiguration).collect(Collectors.toList());
+        Collection<RuleConfiguration> globalRuleConfigs = ruleConfigs.stream().filter(each -> each instanceof GlobalRuleConfiguration).collect(Collectors.toList());
+        configCenter.persistConfigurations(Collections.singletonMap(DefaultSchema.LOGIC_NAME, dataSourceConfigs),
+                Collections.singletonMap(DefaultSchema.LOGIC_NAME, schemaRuleConfigs), globalRuleConfigs, metaDataContexts.getProps().getProps(), isOverwrite);
+        governanceFacade.onlineInstance(Collections.singletonList(DefaultSchema.LOGIC_NAME));
     }
     
     @Override
@@ -128,6 +138,7 @@ public final class GovernanceShardingSphereDataSource extends AbstractUnsupporte
     public void close() throws Exception {
         getDataSourceMap().forEach((key, value) -> close(value));
         metaDataContexts.close();
+        repository.close();
     }
     
     private void close(final DataSource dataSource) {

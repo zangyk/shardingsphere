@@ -19,21 +19,23 @@ package org.apache.shardingsphere.test.integration.junit.container.storage.impl;
 
 import lombok.SneakyThrows;
 import org.apache.shardingsphere.infra.database.type.dialect.H2DatabaseType;
-import org.apache.shardingsphere.test.integration.env.datasource.builder.ActualDataSourceBuilder;
+import org.apache.shardingsphere.test.integration.env.EnvironmentPath;
+import org.apache.shardingsphere.test.integration.env.datasource.DataSourceEnvironmentUtil;
 import org.apache.shardingsphere.test.integration.junit.container.storage.ShardingSphereStorageContainer;
 import org.apache.shardingsphere.test.integration.junit.param.model.ParameterizedArray;
+import org.h2.tools.RunScript;
 
 import javax.sql.DataSource;
+import java.io.File;
+import java.io.FileReader;
+import java.sql.Connection;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * H2 container.
  */
 public final class H2Container extends ShardingSphereStorageContainer {
-    
-    private volatile Map<String, DataSource> actualDataSources;
-    
-    private volatile boolean isHealthy;
     
     public H2Container(final ParameterizedArray parameterizedArray) {
         super("h2-embedded", "h2:fake", new H2DatabaseType(), true, parameterizedArray);
@@ -41,20 +43,37 @@ public final class H2Container extends ShardingSphereStorageContainer {
     
     @Override
     @SneakyThrows
-    protected void configure() {
-        super.configure();
-        actualDataSources = ActualDataSourceBuilder.createActualDataSources(getParameterizedArray().getScenario(), getParameterizedArray().getDatabaseType());
-        isHealthy = true;
+    protected void execute() {
+        super.execute();
+        File file = new File(EnvironmentPath.getInitSQLFile(getDatabaseType(), getParameterizedArray().getScenario()));
+        for (Map.Entry<String, DataSource> each : getDataSourceMap().entrySet()) {
+            String databaseFileName = "init-" + each.getKey() + ".sql";
+            boolean sqlFileExist = EnvironmentPath.checkSQLFileExist(getDatabaseType(), getParameterizedArray().getScenario(), databaseFileName);
+            try (Connection connection = each.getValue().getConnection(); FileReader reader = new FileReader(file)) {
+                RunScript.execute(connection, reader);
+                if (sqlFileExist) {
+                    executeDatabaseFile(connection, databaseFileName);
+                }
+            }
+        }
+    }
+    
+    @SneakyThrows
+    private void executeDatabaseFile(final Connection connection, final String databaseFileName) {
+        File databaseFile = new File(EnvironmentPath.getInitSQLFile(getDatabaseType(), getParameterizedArray().getScenario(), databaseFileName));
+        try (FileReader databaseFileReader = new FileReader(databaseFile)) {
+            RunScript.execute(connection, databaseFileReader);
+        }
     }
     
     @Override
     public boolean isHealthy() {
-        return isHealthy;
+        return true;
     }
     
     @Override
     protected String getUrl(final String dataSourceName) {
-        return null;
+        return DataSourceEnvironmentUtil.getURL("H2", null, 0, Objects.isNull(dataSourceName) ? "test_db" : dataSourceName);
     }
     
     @Override
@@ -64,17 +83,12 @@ public final class H2Container extends ShardingSphereStorageContainer {
     
     @Override
     protected String getUsername() {
-        return null;
+        return "sa";
     }
     
     @Override
     protected String getPassword() {
-        return null;
+        return "";
     }
     
-    @Override
-    @SneakyThrows
-    public synchronized Map<String, DataSource> getDataSourceMap() {
-        return actualDataSources;
-    }
 }
